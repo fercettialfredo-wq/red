@@ -196,15 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const dataField = field.field || field.label;
             
             let inputHtml = '';
+            // Estilos: Bordes VERDES al hacer foco
             if (field.type === 'select') {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
-                inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600">${optionsHtml}</select>`;
+                inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">${optionsHtml}</select>`;
             } else if (field.type === 'textarea') {
-                inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600" rows="4"></textarea>`;
-            
+                inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" rows="4"></textarea>`;
             } else if (field.type === 'file') {
-                inputHtml = `<input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">`;
-            
+                inputHtml = `<input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">`;
             } else if (field.type === 'checkbox-group') {
                 inputHtml = `<div id="${fieldId}" data-field="${dataField}" class="mt-1 space-y-2">`;
                 field.options.forEach((option, index) => {
@@ -221,13 +220,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
                 const minAttr = field.min ? `min="${field.min}"` : '';
                 const maxAttr = field.max ? `max="${field.max}"` : '';
-                inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} ${minAttr} ${maxAttr} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600">`;
+                inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} ${minAttr} ${maxAttr} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">`;
             }
             
             const conditionalClass = field.isConditional ? 'conditional-field' : '';
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}</label>${inputHtml}</div>`;
         });
         
+        // ESTRUCTURA DEL FORMULARIO CON BOTÓN VERDE FORZADO
         formPage.innerHTML = `
             <header class="header-app">
                 <div class="header-logo">
@@ -247,7 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <form class="space-y-4"> 
                     ${fieldsHtml} 
                     <div class="mt-8"> 
-                        <button type="submit" class="btn-save py-3">Guardar</button> 
+                        <button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">
+                            Guardar
+                        </button> 
                     </div> 
                     <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p> 
                 </form> 
@@ -417,23 +419,19 @@ document.addEventListener('DOMContentLoaded', () => {
     checkSession();
 
     // --- LÓGICA PWA (INSTALACIÓN) ---
-    // Detección de dispositivo iOS
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
 
-    // Si ya está instalada (modo standalone), no mostramos nada
     if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) {
         return; 
     }
 
-    // 1. CASO ANDROID / PC (Evento automático)
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         if(installPopup) installPopup.style.display = 'block';
     });
 
-    // 2. CASO IPHONE (Manual)
     if (isIos && !isInStandaloneMode && installPopup) {
         installPopup.style.display = 'block';
         installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa el botón <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
@@ -441,7 +439,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(btnCloseInstall) btnCloseInstall.textContent = "Entendido";
     }
 
-    // 3. Click en Instalar (Android/PC)
     if (btnInstall) {
         btnInstall.addEventListener('click', async () => {
             if (deferredPrompt) {
@@ -454,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. Click en Cerrar
     if (btnCloseInstall) {
         btnCloseInstall.addEventListener('click', () => {
             installPopup.style.display = 'none';
