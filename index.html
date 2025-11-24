@@ -2,19 +2,19 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ravens Access</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
-
-    <link rel="manifest" href="manifest.json">
-    
-    <link rel="apple-touch-icon" href="icon-192.png">
-    
-    <meta name="theme-color" content="#000000"/>
-    
-    </head>
+</head>
 <body>
     <div id="app-container" class="max-w-md mx-auto shadow-lg">
         
@@ -33,9 +33,9 @@
                     </div>
                     <div>
                         <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-                        <div class="password-container">
+                        <div class="password-container relative">
                             <input type="password" id="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2">
-                            <i class="fas fa-eye" id="togglePassword"></i>
+                            <i class="fas fa-eye absolute right-3 top-3 cursor-pointer text-gray-500" id="togglePassword"></i>
                         </div>
                     </div>
                     <div class="flex items-center">
@@ -43,33 +43,31 @@
                         <label for="remember-me" class="ml-2 block text-sm text-gray-900">Recordarme</label>
                     </div>
                     <p id="login-error" class="text-red-600 text-sm text-center hidden"></p>
-                    <button id="login-button" type="submit" class="w-full btn-primary">Entrar</button>
+                    <button id="login-button" type="submit" class="w-full btn-primary py-2 bg-black text-white rounded hover:bg-gray-800">Entrar</button>
                 </form>
             </div>
         </main>
 
         <div id="menu-screen" class="screen">
-            <header class="header-app">
-                <div class="header-logo">
-                    <img src="icons/logo.png" alt="Ravens Logo">
-                    <span class="header-logo-text">RAVENS ACCESS</span>
+            <header class="header-app flex justify-between items-center p-4 bg-black text-white">
+                <div class="header-logo flex items-center gap-2">
+                    <img src="icons/logo.png" alt="Ravens Logo" class="h-8">
+                    <span class="header-logo-text font-bold">RAVENS ACCESS</span>
                 </div>
                 <div id="logout-button" class="cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                 </div>
             </header>
-            <main class="main-menu-grid">
-                <div class="menu-item" data-screen="residente-form"><div class="menu-item-icon"><img src="icons/residente.svg" alt="" class="icon-image"></div><div>Residente</div></div>
-                <div class="menu-item" data-screen="visita-form"><div class="menu-item-icon"><img src="icons/visita.svg" alt="" class="icon-image"></div><div>Visita</div></div>
-                <div class="menu-item" data-screen="evento-form"><div class="menu-item-icon"><img src="icons/evento.svg" alt="" class="icon-image"></div><div>Evento</div></div>
-                
-                <div class="menu-item" data-screen="proveedor-form"><div class="menu-item-icon"><img src="icons/proveedor.svg" alt="" class="icon-image"></div><div>Proveedor</div></div>
-                
-                <div class="menu-item" data-screen="servicio-form"><div class="menu-item-icon"><img src="icons/servicio.svg" alt="" class="icon-image"></div><div>Personal de servicio</div></div>
-                <div class="menu-item" data-screen="qr-form"><div class="menu-item-icon"><img src="icons/qr.svg" alt="" class="icon-image"></div><div>Eliminar QR</div></div>
-                <div class="menu-item" data-screen="incidencias-form"><div class="menu-item-icon"><img src="icons/incidencias.svg" alt="" class="icon-image"></div><div>Incidencias</div></div>
+            <main class="main-menu-grid grid grid-cols-2 gap-4 p-4">
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="residente-form"><div class="menu-item-icon mb-2"><img src="icons/residente.svg" alt="" class="icon-image mx-auto h-10"></div><div>Residente</div></div>
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="visita-form"><div class="menu-item-icon mb-2"><img src="icons/visita.svg" alt="" class="icon-image mx-auto h-10"></div><div>Visita</div></div>
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="evento-form"><div class="menu-item-icon mb-2"><img src="icons/evento.svg" alt="" class="icon-image mx-auto h-10"></div><div>Evento</div></div>
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="proveedor-form"><div class="menu-item-icon mb-2"><img src="icons/proveedor.svg" alt="" class="icon-image mx-auto h-10"></div><div>Proveedor</div></div>
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="servicio-form"><div class="menu-item-icon mb-2"><img src="icons/servicio.svg" alt="" class="icon-image mx-auto h-10"></div><div>Personal</div></div>
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="qr-form"><div class="menu-item-icon mb-2"><img src="icons/qr.svg" alt="" class="icon-image mx-auto h-10"></div><div>Eliminar QR</div></div>
+                <div class="menu-item p-4 bg-gray-100 rounded shadow text-center cursor-pointer hover:bg-gray-200" data-screen="incidencias-form"><div class="menu-item-icon mb-2"><img src="icons/incidencias.svg" alt="" class="icon-image mx-auto h-10"></div><div>Incidencias</div></div>
             </main>
         </div>
 
@@ -81,15 +79,40 @@
         <div id="qr-form" class="screen form-page" data-form-id="Eliminar QR"></div>
         <div id="incidencias-form" class="screen form-page" data-form-id="Incidencias"></div>
         
-        <div id="confirmation-popup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-             <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+        <div id="confirmation-popup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+             <div class="bg-white p-6 rounded-lg shadow-xl text-center w-11/12 max-w-sm">
                  <h3 class="text-lg font-bold mb-4 text-gray-800">Acceso Registrado</h3>
                  <p class="text-gray-600">¡Guardado! El código QR se enviará vía WhatsApp.</p>
-                 <button id="popup-ok-btn" class="mt-6 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">OK</button>
+                 <button id="popup-ok-btn" class="mt-6 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 w-full">OK</button>
              </div>
         </div>
+
+        <div id="install-popup" style="display: none; position: fixed; bottom: 20px; left: 5%; right: 5%; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 1px solid #eee;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                <img src="icons/logo.png" style="width: 40px; height: 40px;">
+                <h3 style="margin: 0; font-weight: bold; color: #000;">Instalar App</h3>
+            </div>
+            <p style="font-size: 14px; color: #555; margin-bottom: 15px;" id="install-text">
+                Agrega <b>Ravens Access</b> a tu inicio para entrar más rápido y sin internet.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="btn-install" style="background: #000; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1;">Instalar</button>
+                <button id="btn-close-install" style="background: #f3f4f6; color: #333; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1;">Ahora no</button>
+            </div>
+        </div>
+
     </div>
 
     <script src="app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado'))
+                    .catch(err => console.log('Error SW:', err));
+            });
+        }
+    </script>
 </body>
 </html>
