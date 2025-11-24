@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN CENTRALIZADA ---
     const CONFIG = {
+        // Tu Router en Azure (Python)
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
 
@@ -27,6 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
 
+    // --- PWA ELEMENTOS ---
+    let deferredPrompt;
+    const installPopup = document.getElementById('install-popup');
+    const btnInstall = document.getElementById('btn-install');
+    const btnCloseInstall = document.getElementById('btn-close-install');
+    const installText = document.getElementById('install-text');
+
     // --- LÓGICA DE NAVEGACIÓN ---
     const showScreen = (screenId) => {
         screens.forEach(screen => screen.classList.remove('active'));
@@ -42,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- LÓGICA DE LOGIN ---
-
     const rememberedUser = localStorage.getItem('rememberedUser');
     if (rememberedUser && usernameInput) {
         usernameInput.value = rememberedUser;
@@ -82,8 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(data.message || 'Credenciales inválidas');
                 }
                 
-                currentUser = { username: username, condominio: data.condominio };
-                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));    
+                // Guardamos usuario y condominio
+                currentUser = { 
+                    username: username, 
+                    condominio: data.condominio || (data.data && data.data.condominio) 
+                };
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));     
                 
                 if (rememberMeCheckbox.checked) {
                     localStorage.setItem('rememberedUser', username);
@@ -122,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- LÓGICA PARA MANTENER LA SESIÓN ABIERTA ---
+    // --- MANTENER SESIÓN ---
     const checkSession = () => {
         const savedUser = sessionStorage.getItem('currentUser');
         if (savedUser) {
@@ -133,74 +144,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- DEFINICIÓN DE FORMULARIOS (ACTUALIZADO) ---
+    // --- DEFINICIÓN DE FORMULARIOS ---
     const formDefinitions = {
         'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
         'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
-        'Evento': [{ label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'N QR', type: 'select', options: ['1', '5', '10'] }],
         
-        // --- FORMULARIO PROVEEDOR MODIFICADO ---
+        // CORRECCIÓN EVENTO: Agregado field: 'Nqr'
+        'Evento': [
+            { label: 'Nombre', type: 'text' }, 
+            { label: 'Torre', type: 'text' }, 
+            { label: 'Departamento', type: 'text' }, 
+            { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } 
+        ],
+        
         'Proveedor': [
-            { label: 'Asunto', type: 'text' }, // <--- CAMBIO: Nombre reemplazado por Asunto
+            { label: 'Asunto', type: 'text' },
             { label: 'Torre', type: 'text' },
             { label: 'Departamento', type: 'text' },
             { label: 'Proveedor', type: 'text' }
         ],
         
+        // CORRECCIÓN PERSONAL: Campos completos
         'Personal de servicio': [
             { label: 'Nombre', type: 'text' },
             { label: 'Torre', type: 'text' },
             { label: 'Departamento', type: 'text' },
             { label: 'Cargo', type: 'text' },
             { label: 'Foto', type: 'file', field: 'Foto' },
-            
-            // Selector de Hora de Entrada
-            {  
-                label: 'Hora de Entrada',  
-                type: 'time',
-                field: 'Hora_Entrada'
-            },
-            // Selector de Hora de Salida
-            {  
-                label: 'Hora de Salida',  
-                type: 'time',
-                field: 'Hora_Salida'
-            },
-            
-            // Días de Trabajo (Checkbox Group)
-            {  
-                label: 'Días de Trabajo',  
-                type: 'checkbox-group',  
-                options: [
-                    'Lunes',  
-                    'Martes',  
-                    'Miércoles',  
-                    'Jueves',  
-                    'Viernes',  
-                    'Sábado',  
-                    'Domingo'
-                ],  
-                field: 'Dias_Trabajo'  
-            },
-
+            { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' },
+            { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
+            { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
             { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
+            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con' },
             
-            // 'Puede Salir con' (Checkbox Group, sin 'Otros')
-            {  
-                label: 'Puede Salir Con',  
-                type: 'checkbox-group',  
-                options: [
-                    'Perros',  
-                    'Autos',  
-                    'Niños'
-                ],  
-                field: 'Puede_Salir_Con'  
-            },
-            
+            // Campos condicionales
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
             { label: 'Fecha Inicio', type: 'date', isConditional: true },
             { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
+
         'Eliminar QR': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Relación', type: 'text' }, { label: 'Nombre QR', type: 'text', field: 'Nombre_QR' } ],
         'Incidencias': [  
             { label: 'Nombre', type: 'text' },  
@@ -245,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 inputHtml += `</div>`;
             } else {
-                // Incluye los tipos 'text', 'date', 'time', 'tel' y 'number'
                 const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
                 const minAttr = field.min ? `min="${field.min}"` : '';
                 const maxAttr = field.max ? `max="${field.max}"` : '';
@@ -286,17 +267,17 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility();
     }
 
-    // --- NUEVA FUNCIÓN PARA LEER ARCHIVOS ---
+    // --- FUNCIÓN PARA LEER ARCHIVOS ---
     function readFileAsBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result); // Devuelve el string Base64
+            reader.onload = () => resolve(reader.result);
             reader.onerror = error => reject(error);
             reader.readAsDataURL(file);
         });
     }
 
-    // --- FUNCIÓN handleFormSubmit ACTUALIZADA ---
+    // --- FUNCIÓN handleFormSubmit ---
     async function handleFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
@@ -305,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorP = form.querySelector('.form-error');
         errorP.classList.add('hidden');
         
+        // Datos base
         const data = {
             action: 'submit_form',
             formulario: formId,
@@ -326,24 +308,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isConditional = fieldContainer ? fieldContainer.classList.contains('conditional-field') : false;
                 const isVisible = !isConditional || (fieldContainer && fieldContainer.classList.contains('visible'));
 
-                if (!isVisible) {
-                    continue;    
-                }
+                if (!isVisible) continue;
 
                 if (fieldDefinition.type === 'checkbox-group') {
                     const selectedOptions = [];
                     const checkboxes = form.querySelectorAll(`input[name="${fieldId}"]:checked`);
-                    checkboxes.forEach(checkbox => {
-                        selectedOptions.push(checkbox.value);
-                    });
+                    checkboxes.forEach(checkbox => selectedOptions.push(checkbox.value));
                     
                     if (dataField === 'Puede_Salir_Con') {
                         data[dataField] = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Ninguno';
                     } else {
                         data[dataField] = selectedOptions.join(', ');
-                        if (selectedOptions.length === 0) {
-                            // Validación para días de trabajo u otros checkbox
-                        }
                     }
 
                 } else if (fieldDefinition.type === 'file') {
@@ -352,13 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (file) {
                         data[dataField] = await readFileAsBase64(file);
                     }    
-                }
-                else {
+                } else {
                     const inputElement = form.querySelector(`#${fieldId}`);
                     const currentValue = inputElement ? inputElement.value.trim() : '';
                     data[dataField] = currentValue;
 
-                    // Validación básica: Si el campo está visible y vacío
                     if (!currentValue && isVisible) {    
                         allFieldsValid = false;
                     }
@@ -369,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error("Por favor, rellena todos los campos visibles y obligatorios.");
             }
             
+            // ENVÍO AL ROUTER
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -380,17 +354,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.message || 'Error en el servidor');
             }
             
-            // Lógica de confirmación
+            // POPUPS DE ÉXITO
             switch (formId) {
                 case 'Proveedor':
-                    // Confirmación de proveedor sin mención al código, ya que lo genera la Function App
-                    showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! El código de acceso único se enviará vía WhatsApp.');
+                    showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
                     break;
                 case 'Eliminar QR':
                     showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
                     break;
                 case 'Incidencias':
                     showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
+                    break;
+                case 'Personal de servicio':
+                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
                     break;
                 default:
                     showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
@@ -422,11 +398,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeForm.reset();
                 const trigger = activeForm.querySelector('#tipo-personal');
                 if (trigger) trigger.dispatchEvent(new Event('change'));
-                
-                // Limpiar checkboxes
                 const checkboxGroups = activeForm.querySelectorAll('input[type="checkbox"]');
                 checkboxGroups.forEach(checkbox => checkbox.checked = false);
-
                 activeForm.querySelector('.form-error').classList.add('hidden');
             }
             showScreen(SCREENS.MENU);
@@ -434,4 +407,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     checkSession();
+
+    // --- LÓGICA PWA (INSTALACIÓN) ---
+    // Detección de dispositivo iOS
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    // Si ya está instalada (modo standalone), no mostramos nada
+    if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) {
+        return; 
+    }
+
+    // 1. CASO ANDROID / PC (Evento automático)
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if(installPopup) installPopup.style.display = 'block';
+    });
+
+    // 2. CASO IPHONE (Manual)
+    if (isIos && !isInStandaloneMode && installPopup) {
+        installPopup.style.display = 'block';
+        installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa el botón <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
+        if(btnInstall) btnInstall.style.display = 'none';
+        if(btnCloseInstall) btnCloseInstall.textContent = "Entendido";
+    }
+
+    // 3. Click en Instalar (Android/PC)
+    if (btnInstall) {
+        btnInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`Usuario decidió: ${outcome}`);
+                deferredPrompt = null;
+                installPopup.style.display = 'none';
+            }
+        });
+    }
+
+    // 4. Click en Cerrar
+    if (btnCloseInstall) {
+        btnCloseInstall.addEventListener('click', () => {
+            installPopup.style.display = 'none';
+        });
+    }
 });
