@@ -198,12 +198,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let inputHtml = '';
             if (field.type === 'select') {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
-                inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-900">${optionsHtml}</select>`;
+                inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600">${optionsHtml}</select>`;
             } else if (field.type === 'textarea') {
-                inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-900" rows="4"></textarea>`;
+                inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600" rows="4"></textarea>`;
             
             } else if (field.type === 'file') {
-                inputHtml = `<input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">`;
+                inputHtml = `<input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">`;
             
             } else if (field.type === 'checkbox-group') {
                 inputHtml = `<div id="${fieldId}" data-field="${dataField}" class="mt-1 space-y-2">`;
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const checkboxId = `${fieldId}-${index}`;
                     inputHtml += `
                         <div class="flex items-center">
-                            <input type="checkbox" id="${checkboxId}" name="${fieldId}" value="${option}" class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                            <input type="checkbox" id="${checkboxId}" name="${fieldId}" value="${option}" class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
                             <label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">${option}</label>
                         </div>
                     `;
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
                 const minAttr = field.min ? `min="${field.min}"` : '';
                 const maxAttr = field.max ? `max="${field.max}"` : '';
-                inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} ${minAttr} ${maxAttr} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-900">`;
+                inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} ${minAttr} ${maxAttr} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600">`;
             }
             
             const conditionalClass = field.isConditional ? 'conditional-field' : '';
@@ -229,20 +229,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         formPage.innerHTML = `
-            <header class="header-app"><div class="header-logo"><img src="./icons/logo.png" alt="Ravens Logo"><span class="header-logo-text">RAVENS ACCESS</span></div></header>
+            <header class="header-app">
+                <div class="header-logo">
+                    <img src="./icons/logo.png" alt="Ravens Logo">
+                    <span class="header-logo-text">RAVENS ACCESS</span>
+                </div>
+            </header>
+            
             <div class="form-title-section"> 
                 <h2 class="form-title">${formId}</h2> 
                 <div class="home-icon cursor-pointer"> 
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg> 
+                    <i class="fa-solid fa-house" style="font-size: 1.5rem;"></i>
                 </div> 
             </div>
+            
             <div class="form-container"> 
                 <form class="space-y-4"> 
                     ${fieldsHtml} 
                     <div class="mt-8"> 
-                        <button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg hover:opacity-90 transition" style="background-color: #8B0000;">
-                            Guardar
-                        </button> 
+                        <button type="submit" class="btn-save py-3">Guardar</button> 
                     </div> 
                     <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p> 
                 </form> 
@@ -412,26 +417,31 @@ document.addEventListener('DOMContentLoaded', () => {
     checkSession();
 
     // --- LÓGICA PWA (INSTALACIÓN) ---
+    // Detección de dispositivo iOS
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
 
+    // Si ya está instalada (modo standalone), no mostramos nada
     if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) {
         return; 
     }
 
+    // 1. CASO ANDROID / PC (Evento automático)
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         if(installPopup) installPopup.style.display = 'block';
     });
 
+    // 2. CASO IPHONE (Manual)
     if (isIos && !isInStandaloneMode && installPopup) {
         installPopup.style.display = 'block';
-        installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa el botón <b>Compartir</b> <i class='fas fa-share-from-square'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
+        installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa el botón <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
         if(btnInstall) btnInstall.style.display = 'none';
         if(btnCloseInstall) btnCloseInstall.textContent = "Entendido";
     }
 
+    // 3. Click en Instalar (Android/PC)
     if (btnInstall) {
         btnInstall.addEventListener('click', async () => {
             if (deferredPrompt) {
@@ -444,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 4. Click en Cerrar
     if (btnCloseInstall) {
         btnCloseInstall.addEventListener('click', () => {
             installPopup.style.display = 'none';
