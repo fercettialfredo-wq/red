@@ -155,9 +155,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         'Proveedor': [
             { label: 'Nombre', type: 'text' },
-            { label: 'Asunto', type: 'text' },
             { label: 'Torre', type: 'text' },
             { label: 'Departamento', type: 'text' },
+            { label: 'Asunto', type: 'text' },
             { label: 'Proveedor', type: 'text' }
         ],
         'Personal de servicio': [
@@ -487,4 +487,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
