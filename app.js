@@ -154,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } 
         ],
         'Proveedor': [
+            { label: 'Nombre', type: 'text' },
             { label: 'Asunto', type: 'text' },
             { label: 'Torre', type: 'text' },
             { label: 'Departamento', type: 'text' },
@@ -486,3 +487,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
