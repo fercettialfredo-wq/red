@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Torre', type: 'text' },
             { label: 'Departamento', type: 'text' },
             { label: 'Asunto', type: 'text' },
-            { label: 'Proveedor', type: 'text' }
+            { label: 'Empresa', type: 'text' }
         ],
         'Personal de servicio': [
             { label: 'Nombre', type: 'text' },
@@ -487,5 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
