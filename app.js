@@ -290,74 +290,105 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- FUNCIÓN handleFormSubmit ---
+    // --- FUNCIÓN handleFormSubmit OPTIMIZADA Y CORREGIDA ---
     async function handleFormSubmit(event) {
         event.preventDefault();
+        
+        // 1. Referencias seguras
         const form = event.target;
-        const formId = form.closest('.form-page').dataset.formId;
+        const formPage = form.closest('.form-page');
+        if (!formPage) return; 
+        
+        const formId = formPage.dataset.formId;
         const saveButton = form.querySelector('.btn-save');
         const errorP = form.querySelector('.form-error');
-        errorP.classList.add('hidden');
         
-        const data = {
-            action: 'submit_form',
-            formulario: formId,
-            condominio: currentUser.condominio || 'No especificado',
-            registradoPor: currentUser.username || 'No especificado'
-        };
+        // Limpiar errores previos
+        if (errorP) errorP.classList.add('hidden');
 
-        saveButton.disabled = true;
-        saveButton.textContent = 'Guardando...';
+        // 2. Bloqueo inmediato del botón
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Procesando...';
+        }
 
         try {
+            const data = {
+                action: 'submit_form',
+                formulario: formId,
+                condominio: currentUser.condominio || 'No especificado',
+                registradoPor: currentUser.username || 'No especificado'
+            };
+
             let allFieldsValid = true;
 
+            // Recorremos los campos definidos
             for (const fieldDefinition of formDefinitions[formId]) {
                 const dataField = fieldDefinition.field || fieldDefinition.label;
                 const fieldId = fieldDefinition.id || `${formId.toLowerCase().replace(/\s/g, '-')}-${fieldDefinition.label.toLowerCase().replace(/\s/g, '-')}`;
                 
-                const fieldContainer = form.querySelector(`#${fieldId}`) ? form.querySelector(`#${fieldId}`).closest('div') : null;
-                const isConditional = fieldContainer ? fieldContainer.classList.contains('conditional-field') : false;
-                const isVisible = !isConditional || (fieldContainer && fieldContainer.classList.contains('visible'));
-
-                if (!isVisible) continue;
-
-                if (fieldDefinition.type === 'checkbox-group') {
-                    const selectedOptions = [];
-                    const checkboxes = form.querySelectorAll(`input[name="${fieldId}"]:checked`);
-                    checkboxes.forEach(checkbox => selectedOptions.push(checkbox.value));
-                    
-                    if (dataField === 'Puede_Salir_Con') {
-                        data[dataField] = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Ninguno';
-                    } else {
-                        data[dataField] = selectedOptions.join(', ');
+                // USAMOS getElementById (Más seguro para acentos)
+                const element = document.getElementById(fieldId);
+                
+                // Verificar visibilidad (Lógica condicional)
+                let isVisible = true;
+                if (element) {
+                    const container = element.closest('.conditional-field');
+                    if (container && !container.classList.contains('visible')) {
+                        isVisible = false;
                     }
+                }
+                
+                // Si el campo no existe o está oculto, saltamos
+                if (!element || !isVisible) continue;
 
-                } else if (fieldDefinition.type === 'file') {
-                    const fileInput = form.querySelector(`#${fieldId}`);
-                    const file = fileInput ? fileInput.files[0] : null;
-                    if (file) {
-                        data[dataField] = await readFileAsBase64(file);
-                    }    
-                } else {
-                    const inputElement = form.querySelector(`#${fieldId}`);
-                    const currentValue = inputElement ? inputElement.value.trim() : '';
-                    data[dataField] = currentValue;
+                // --- TIPO: CHECKBOX ---
+                if (fieldDefinition.type === 'checkbox-group') {
+                    // Para checkbox, el ID apunta al DIV contenedor, buscamos inputs dentro
+                    const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
+                    const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
+                    
+                    const val = selectedOptions.join(', ');
+                    data[dataField] = selectedOptions.length > 0 ? val : (dataField === 'Puede_Salir_Con' ? 'Ninguno' : '');
 
-                    if (!currentValue && isVisible) {    
+                    // Validación: Si es obligatorio y no es opcional
+                    if (dataField !== 'Puede_Salir_Con' && selectedOptions.length === 0) {
                         allFieldsValid = false;
                     }
+
+                // --- TIPO: FOTO (ARCHIVO) ---
+                } else if (fieldDefinition.type === 'file') {
+                    const file = element.files[0];
+                    if (file) {
+                        // VALIDACIÓN DE TAMAÑO: Máximo 5MB
+                        if (file.size > 5 * 1024 * 1024) {
+                            throw new Error(`La foto es demasiado pesada (${(file.size/1024/1024).toFixed(1)}MB). Máximo 5MB.`);
+                        }
+                        data[dataField] = await readFileAsBase64(file);
+                    } else {
+                        data[dataField] = ""; 
+                        allFieldsValid = false; 
+                    }
+
+                // --- OTROS INPUTS ---
+                } else {
+                    const val = element.value.trim();
+                    data[dataField] = val;
+                    if (!val) allFieldsValid = false;
                 }
             }
 
             if (!allFieldsValid) {
-                throw new Error("Por favor, rellena todos los campos visibles y obligatorios.");
+                throw new Error("Faltan campos obligatorios (Revisa Foto, Días de trabajo u otros datos).");
             }
+            
+            // 3. Enviar a Azure
+            if (saveButton) saveButton.textContent = 'Enviando...';
             
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)    
+                body: JSON.stringify(data)
             });
 
             if (!response.ok) {
@@ -365,30 +396,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.message || 'Error en el servidor');
             }
             
-            switch (formId) {
-                case 'Proveedor':
-                    showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
-                    break;
-                case 'Eliminar QR':
-                    showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
-                    break;
-                case 'Incidencias':
-                    showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
-                    break;
-                case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
-                    break;
-                default:
-                    showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
-                    break;
-            }
+            // 4. Mensajes de Éxito
+            const successMessages = {
+                'Proveedor': '¡Guardado! Referencia enviada.',
+                'Eliminar QR': '¡Guardado! Acceso eliminado.',
+                'Incidencias': 'Reporte enviado correctamente.',
+                'Personal de servicio': '¡Guardado! QR enviado por WhatsApp.'
+            };
+            
+            showConfirmationPopup(formId, successMessages[formId] || '¡Guardado exitosamente!');
+
         } catch (error) {
-            console.error("Error al enviar datos:", error);
-            errorP.textContent = error.message || "Hubo un error al guardar los datos.";
-            errorP.classList.remove('hidden');
+            console.error("Error:", error);
+            if (errorP) {
+                errorP.textContent = error.message;
+                errorP.classList.remove('hidden');
+                errorP.scrollIntoView({ behavior: 'smooth' });
+            }
         } finally {
-            saveButton.disabled = false;
-            saveButton.textContent = 'Guardar';
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Guardar';
+            }
         }
     }
 
