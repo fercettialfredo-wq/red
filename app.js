@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURACIÓN CENTRALIZADA ---
+    // --- CONFIGURACIÓN ---
     const CONFIG = {
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
@@ -26,14 +26,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
 
-    // --- UTILIDAD PARA ELIMINAR ACENTOS (ESTO ARREGLA EL CONGELAMIENTO) ---
-    const normalizeId = (str) => {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita tildes (días -> dias)
+    // --- PWA ---
+    let deferredPrompt;
+    const installPopup = document.getElementById('install-popup');
+    const btnInstall = document.getElementById('btn-install');
+    const btnCloseInstall = document.getElementById('btn-close-install');
+    const installText = document.getElementById('install-text');
+
+    // --- FUNCIÓN MÁGICA PARA QUITAR ACENTOS (ESTA ES LA SOLUCIÓN) ---
+    // Convierte "Días de Trabajo" en "dias-de-trabajo" automáticamente
+    const cleanId = (str) => {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita tildes
                   .toLowerCase()
                   .replace(/\s+/g, '-'); // Espacios a guiones
     };
 
-    // --- LÓGICA DE NAVEGACIÓN ---
+    // --- NAVEGACIÓN ---
     const showScreen = (screenId) => {
         screens.forEach(screen => screen.classList.remove('active'));
         const activeScreen = document.getElementById(screenId);
@@ -42,12 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 generateFormContent(activeScreen);
             }
             activeScreen.classList.add('active');
-        } else {
-            console.error(`Error: No se encontró la pantalla con ID "${screenId}"`);
         }
     };
 
-    // --- LÓGICA DE LOGIN ---
+    // --- LOGIN ---
     const rememberedUser = localStorage.getItem('rememberedUser');
     if (rememberedUser && usernameInput) {
         usernameInput.value = rememberedUser;
@@ -138,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- TUS DEFINICIONES ORIGINALES (NO TOCADAS) ---
+    // --- DEFINICIÓN DE FORMULARIOS (TUS CAMPOS ORIGINALES) ---
     const formDefinitions = {
         'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
         'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
@@ -188,8 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let fieldsHtml = '';
 
         fields.forEach(field => {
-            // CORRECCIÓN: Usamos normalizeId para generar IDs seguros sin acentos
-            const fieldId = field.id || `${normalizeId(formId)}-${normalizeId(field.label)}`;
+            // USAMOS cleanId AQUI para generar IDs sin acentos
+            const fieldId = field.id || `${cleanId(formId)}-${cleanId(field.label)}`;
             const dataField = field.field || field.label;
             
             let inputHtml = '';
@@ -284,7 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- FUNCIÓN DE ENVÍO CORREGIDA PARA EVITAR CONGELAMIENTO ---
     async function handleFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
@@ -292,36 +297,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const formId = formPage.dataset.formId;
         const saveButton = form.querySelector('.btn-save');
         const errorP = form.querySelector('.form-error');
+        
         errorP.classList.add('hidden');
         
-        const data = {
-            action: 'submit_form',
-            formulario: formId,
-            condominio: currentUser.condominio || 'No especificado',
-            registradoPor: currentUser.username || 'No especificado'
-        };
-
-        saveButton.disabled = true;
-        saveButton.textContent = 'Guardando...';
-
+        // BLOQUE TRY-CATCH PARA EVITAR CONGELAMIENTO
         try {
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.textContent = 'Procesando...';
+            }
+
+            const data = {
+                action: 'submit_form',
+                formulario: formId,
+                condominio: currentUser.condominio || 'No especificado',
+                registradoPor: currentUser.username || 'No especificado'
+            };
+
             let allFieldsValid = true;
 
             for (const fieldDefinition of formDefinitions[formId]) {
                 const dataField = fieldDefinition.field || fieldDefinition.label;
-                // CORRECCIÓN: Usamos la misma lógica de normalizeId para encontrar el elemento
-                const fieldId = fieldDefinition.id || `${normalizeId(formId)}-${normalizeId(fieldDefinition.label)}`;
                 
-                // Usamos getElementById que es más seguro que querySelector para caracteres especiales
+                // USAMOS cleanId AQUI TAMBIÉN (ESTO EVITA EL ERROR DEL ACENTO)
+                const fieldId = fieldDefinition.id || `${cleanId(formId)}-${cleanId(fieldDefinition.label)}`;
+                
                 const element = document.getElementById(fieldId);
                 
                 if (!element) continue;
 
-                // Verificar si es un campo visible
                 let isVisible = true;
                 const container = element.closest('.conditional-field');
                 if (container && !container.classList.contains('visible')) isVisible = false;
-                
                 if (!isVisible) continue;
 
                 if (fieldDefinition.type === 'checkbox-group') {
@@ -339,9 +346,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (fieldDefinition.type === 'file') {
                     const file = element.files[0];
                     if (file) {
-                        // Validación de tamaño para que no explote la memoria (5MB)
+                        // Límite de 5MB para no saturar memoria
                         if (file.size > 5 * 1024 * 1024) {
-                            throw new Error(`La foto es demasiado grande. Máximo 5MB.`);
+                            throw new Error("La foto es muy grande (máx 5MB).");
                         }
                         data[dataField] = await readFileAsBase64(file);
                     } else {
@@ -356,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!allFieldsValid) {
-                throw new Error("Por favor, rellena todos los campos obligatorios (Días, Foto, etc).");
+                throw new Error("Por favor, rellena todos los campos obligatorios.");
             }
             
             const response = await fetch(CONFIG.API_PROXY_URL, {
@@ -370,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.message || 'Error en el servidor');
             }
             
-            // --- TUS MENSAJES ORIGINALES ---
+            // Mensajes originales
             switch (formId) {
                 case 'Proveedor':
                     showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
@@ -388,16 +395,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
                     break;
             }
+
         } catch (error) {
             console.error("Error:", error);
-            errorP.textContent = error.message || "Hubo un error al guardar los datos.";
+            errorP.textContent = error.message;
             errorP.classList.remove('hidden');
-            // Auto-scroll para que veas el error
             errorP.scrollIntoView({ behavior: 'smooth' });
         } finally {
             // ESTO ASEGURA QUE EL BOTÓN SE DESBLOQUEE SIEMPRE
-            saveButton.disabled = false;
-            saveButton.textContent = 'Guardar';
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Guardar';
+            }
         }
     }
 
@@ -425,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- LÓGICA PWA (INSTALACIÓN) ---
+    // --- PWA ---
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
 
