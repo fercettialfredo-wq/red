@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURACIÓN ---
+    // --- CONFIGURACIÓN CENTRALIZADA ---
     const CONFIG = {
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
@@ -26,19 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
 
-    // --- PWA ---
-    let deferredPrompt;
-    const installPopup = document.getElementById('install-popup');
-    const btnInstall = document.getElementById('btn-install');
-    const btnCloseInstall = document.getElementById('btn-close-install');
-    const installText = document.getElementById('install-text');
-
-    // --- FUNCIÓN MÁGICA PARA QUITAR ACENTOS (ESTA ES LA SOLUCIÓN) ---
-    // Convierte "Días de Trabajo" en "dias-de-trabajo" automáticamente
-    const cleanId = (str) => {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita tildes
+    // --- UTILIDAD PARA QUITAR ACENTOS EN IDs ---
+    const normalizeId = (str) => {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
                   .toLowerCase()
-                  .replace(/\s+/g, '-'); // Espacios a guiones
+                  .replace(/\s+/g, '-');
     };
 
     // --- NAVEGACIÓN ---
@@ -144,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- DEFINICIÓN DE FORMULARIOS (TUS CAMPOS ORIGINALES) ---
+    // --- DEFINICIONES DE FORMULARIOS ---
     const formDefinitions = {
         'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
         'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
@@ -194,8 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let fieldsHtml = '';
 
         fields.forEach(field => {
-            // USAMOS cleanId AQUI para generar IDs sin acentos
-            const fieldId = field.id || `${cleanId(formId)}-${cleanId(field.label)}`;
+            const fieldId = field.id || `${normalizeId(formId)}-${normalizeId(field.label)}`;
             const dataField = field.field || field.label;
             
             let inputHtml = '';
@@ -281,15 +272,35 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility();
     }
 
-    function readFileAsBase64(file) {
+    // --- NUEVA FUNCIÓN DE COMPRESIÓN DE IMAGEN (ARREGLA EL CONGELAMIENTO) ---
+    function compressImage(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
             reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Reducimos a 800px de ancho
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Comprimimos a JPEG calidad 0.7 (70%)
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(dataUrl);
+                };
+                img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
         });
     }
 
+    // --- FUNCIÓN DE ENVÍO ACTUALIZADA ---
     async function handleFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
@@ -300,114 +311,112 @@ document.addEventListener('DOMContentLoaded', () => {
         
         errorP.classList.add('hidden');
         
-        // BLOQUE TRY-CATCH PARA EVITAR CONGELAMIENTO
-        try {
-            if (saveButton) {
-                saveButton.disabled = true;
-                saveButton.textContent = 'Procesando...';
-            }
+        // Actualizar botón visualmente PRIMERO
+        if (saveButton) {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Procesando imagen...';
+        }
 
-            const data = {
-                action: 'submit_form',
-                formulario: formId,
-                condominio: currentUser.condominio || 'No especificado',
-                registradoPor: currentUser.username || 'No especificado'
-            };
+        // Usamos setTimeout para permitir que el navegador actualice el texto del botón antes de congelarse procesando
+        setTimeout(async () => {
+            try {
+                const data = {
+                    action: 'submit_form',
+                    formulario: formId,
+                    condominio: currentUser.condominio || 'No especificado',
+                    registradoPor: currentUser.username || 'No especificado'
+                };
 
-            let allFieldsValid = true;
+                let allFieldsValid = true;
 
-            for (const fieldDefinition of formDefinitions[formId]) {
-                const dataField = fieldDefinition.field || fieldDefinition.label;
-                
-                // USAMOS cleanId AQUI TAMBIÉN (ESTO EVITA EL ERROR DEL ACENTO)
-                const fieldId = fieldDefinition.id || `${cleanId(formId)}-${cleanId(fieldDefinition.label)}`;
-                
-                const element = document.getElementById(fieldId);
-                
-                if (!element) continue;
-
-                let isVisible = true;
-                const container = element.closest('.conditional-field');
-                if (container && !container.classList.contains('visible')) isVisible = false;
-                if (!isVisible) continue;
-
-                if (fieldDefinition.type === 'checkbox-group') {
-                    const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
-                    const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
+                for (const fieldDefinition of formDefinitions[formId]) {
+                    const dataField = fieldDefinition.field || fieldDefinition.label;
+                    const fieldId = fieldDefinition.id || `${normalizeId(formId)}-${normalizeId(fieldDefinition.label)}`;
                     
-                    if (dataField === 'Puede_Salir_Con') {
-                        data[dataField] = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Ninguno';
+                    const element = document.getElementById(fieldId);
+                    
+                    if (!element) continue;
+
+                    let isVisible = true;
+                    const container = element.closest('.conditional-field');
+                    if (container && !container.classList.contains('visible')) isVisible = false;
+                    if (!isVisible) continue;
+
+                    if (fieldDefinition.type === 'checkbox-group') {
+                        const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
+                        const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
+                        
+                        if (dataField === 'Puede_Salir_Con') {
+                            data[dataField] = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Ninguno';
+                        } else {
+                            const val = selectedOptions.join(', ');
+                            data[dataField] = val;
+                            if (!val) allFieldsValid = false;
+                        }
+
+                    } else if (fieldDefinition.type === 'file') {
+                        const file = element.files[0];
+                        if (file) {
+                            // USAMOS LA NUEVA FUNCIÓN DE COMPRESIÓN
+                            data[dataField] = await compressImage(file);
+                        } else {
+                            data[dataField] = ""; 
+                            if(isVisible) allFieldsValid = false;
+                        }   
                     } else {
-                        const val = selectedOptions.join(', ');
+                        const val = element.value.trim();
                         data[dataField] = val;
                         if (!val) allFieldsValid = false;
                     }
+                }
 
-                } else if (fieldDefinition.type === 'file') {
-                    const file = element.files[0];
-                    if (file) {
-                        // Límite de 5MB para no saturar memoria
-                        if (file.size > 5 * 1024 * 1024) {
-                            throw new Error("La foto es muy grande (máx 5MB).");
-                        }
-                        data[dataField] = await readFileAsBase64(file);
-                    } else {
-                        data[dataField] = ""; 
-                        if(isVisible) allFieldsValid = false;
-                    }   
-                } else {
-                    const val = element.value.trim();
-                    data[dataField] = val;
-                    if (!val) allFieldsValid = false;
+                if (!allFieldsValid) {
+                    throw new Error("Por favor, rellena todos los campos obligatorios.");
+                }
+                
+                saveButton.textContent = 'Enviando...';
+
+                const response = await fetch(CONFIG.API_PROXY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)    
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Error en el servidor');
+                }
+                
+                switch (formId) {
+                    case 'Proveedor':
+                        showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
+                        break;
+                    case 'Eliminar QR':
+                        showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
+                        break;
+                    case 'Incidencias':
+                        showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
+                        break;
+                    case 'Personal de servicio':
+                        showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
+                        break;
+                    default:
+                        showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
+                        break;
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                errorP.textContent = error.message;
+                errorP.classList.remove('hidden');
+                errorP.scrollIntoView({ behavior: 'smooth' });
+            } finally {
+                if (saveButton) {
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Guardar';
                 }
             }
-
-            if (!allFieldsValid) {
-                throw new Error("Por favor, rellena todos los campos obligatorios.");
-            }
-            
-            const response = await fetch(CONFIG.API_PROXY_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)    
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.message || 'Error en el servidor');
-            }
-            
-            // Mensajes originales
-            switch (formId) {
-                case 'Proveedor':
-                    showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
-                    break;
-                case 'Eliminar QR':
-                    showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
-                    break;
-                case 'Incidencias':
-                    showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
-                    break;
-                case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
-                    break;
-                default:
-                    showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
-                    break;
-            }
-
-        } catch (error) {
-            console.error("Error:", error);
-            errorP.textContent = error.message;
-            errorP.classList.remove('hidden');
-            errorP.scrollIntoView({ behavior: 'smooth' });
-        } finally {
-            // ESTO ASEGURA QUE EL BOTÓN SE DESBLOQUEE SIEMPRE
-            if (saveButton) {
-                saveButton.disabled = false;
-                saveButton.textContent = 'Guardar';
-            }
-        }
+        }, 50); // Pequeño retardo para que la UI respire
     }
 
     function showConfirmationPopup(title, message) {
