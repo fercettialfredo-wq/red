@@ -26,11 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
 
-    // --- UTILIDAD PARA QUITAR ACENTOS EN IDs ---
+    // --- UTILIDAD PARA ELIMINAR ACENTOS (ARREGLA EL ERROR DE SELECCIÓN) ---
     const normalizeId = (str) => {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita tildes
                   .toLowerCase()
-                  .replace(/\s+/g, '-');
+                  .replace(/\s+/g, '-'); // Espacios a guiones
     };
 
     // --- NAVEGACIÓN ---
@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let fieldsHtml = '';
 
         fields.forEach(field => {
+            // Usamos normalizeId para generar IDs consistentes
             const fieldId = field.id || `${normalizeId(formId)}-${normalizeId(field.label)}`;
             const dataField = field.field || field.label;
             
@@ -272,37 +273,44 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility();
     }
 
-    // --- NUEVA FUNCIÓN DE COMPRESIÓN DE IMAGEN (ARREGLA EL CONGELAMIENTO) ---
+    // --- FUNCIÓN DE COMPRESIÓN OPTIMIZADA (V2 - NO CONGELA) ---
     function compressImage(file) {
         return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // Reducimos a 800px de ancho
-                    const scaleSize = MAX_WIDTH / img.width;
+            const img = new Image();
+            // Truco: Crea URL temporal sin cargar a memoria
+            img.src = URL.createObjectURL(file);
+            
+            img.onload = () => {
+                URL.revokeObjectURL(img.src); // Limpia memoria
+
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600; // Reducimos a 600px
+                const scaleSize = MAX_WIDTH / img.width;
+                
+                if (scaleSize >= 1) {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                } else {
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
+                }
 
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                    // Comprimimos a JPEG calidad 0.7 (70%)
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    resolve(dataUrl);
-                };
-                img.onerror = (error) => reject(error);
+                // Compresión agresiva JPG 60%
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                resolve(dataUrl);
             };
-            reader.onerror = (error) => reject(error);
+            
+            img.onerror = (error) => reject("Error al cargar la imagen.");
         });
     }
 
-    // --- FUNCIÓN DE ENVÍO ACTUALIZADA ---
+    // --- FUNCIÓN DE ENVÍO ---
     async function handleFormSubmit(event) {
         event.preventDefault();
+        
         const form = event.target;
         const formPage = form.closest('.form-page');
         const formId = formPage.dataset.formId;
@@ -311,112 +319,116 @@ document.addEventListener('DOMContentLoaded', () => {
         
         errorP.classList.add('hidden');
         
-        // Actualizar botón visualmente PRIMERO
+        // 1. Bloqueo inmediato del botón para feedback visual
         if (saveButton) {
             saveButton.disabled = true;
-            saveButton.textContent = 'Procesando imagen...';
+            saveButton.style.opacity = "0.7";
+            saveButton.textContent = 'Procesando foto...';
         }
 
-        // Usamos setTimeout para permitir que el navegador actualice el texto del botón antes de congelarse procesando
-        setTimeout(async () => {
-            try {
-                const data = {
-                    action: 'submit_form',
-                    formulario: formId,
-                    condominio: currentUser.condominio || 'No especificado',
-                    registradoPor: currentUser.username || 'No especificado'
-                };
+        // 2. Pequeño delay para permitir que el navegador pinte el botón antes de procesar
+        await new Promise(r => setTimeout(r, 50));
 
-                let allFieldsValid = true;
+        try {
+            const data = {
+                action: 'submit_form',
+                formulario: formId,
+                condominio: currentUser.condominio || 'No especificado',
+                registradoPor: currentUser.username || 'No especificado'
+            };
 
-                for (const fieldDefinition of formDefinitions[formId]) {
-                    const dataField = fieldDefinition.field || fieldDefinition.label;
-                    const fieldId = fieldDefinition.id || `${normalizeId(formId)}-${normalizeId(fieldDefinition.label)}`;
+            let allFieldsValid = true;
+
+            for (const fieldDefinition of formDefinitions[formId]) {
+                const dataField = fieldDefinition.field || fieldDefinition.label;
+                const fieldId = fieldDefinition.id || `${normalizeId(formId)}-${normalizeId(fieldDefinition.label)}`;
+                const element = document.getElementById(fieldId);
+                
+                if (!element) continue;
+
+                let isVisible = true;
+                const container = element.closest('.conditional-field');
+                if (container && !container.classList.contains('visible')) isVisible = false;
+                if (!isVisible) continue;
+
+                if (fieldDefinition.type === 'checkbox-group') {
+                    const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
+                    const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
                     
-                    const element = document.getElementById(fieldId);
-                    
-                    if (!element) continue;
-
-                    let isVisible = true;
-                    const container = element.closest('.conditional-field');
-                    if (container && !container.classList.contains('visible')) isVisible = false;
-                    if (!isVisible) continue;
-
-                    if (fieldDefinition.type === 'checkbox-group') {
-                        const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
-                        const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
-                        
-                        if (dataField === 'Puede_Salir_Con') {
-                            data[dataField] = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Ninguno';
-                        } else {
-                            const val = selectedOptions.join(', ');
-                            data[dataField] = val;
-                            if (!val) allFieldsValid = false;
-                        }
-
-                    } else if (fieldDefinition.type === 'file') {
-                        const file = element.files[0];
-                        if (file) {
-                            // USAMOS LA NUEVA FUNCIÓN DE COMPRESIÓN
-                            data[dataField] = await compressImage(file);
-                        } else {
-                            data[dataField] = ""; 
-                            if(isVisible) allFieldsValid = false;
-                        }   
+                    if (dataField === 'Puede_Salir_Con') {
+                        data[dataField] = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Ninguno';
                     } else {
-                        const val = element.value.trim();
+                        const val = selectedOptions.join(', ');
                         data[dataField] = val;
                         if (!val) allFieldsValid = false;
                     }
-                }
 
-                if (!allFieldsValid) {
-                    throw new Error("Por favor, rellena todos los campos obligatorios.");
-                }
-                
-                saveButton.textContent = 'Enviando...';
-
-                const response = await fetch(CONFIG.API_PROXY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)    
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.message || 'Error en el servidor');
-                }
-                
-                switch (formId) {
-                    case 'Proveedor':
-                        showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
-                        break;
-                    case 'Eliminar QR':
-                        showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
-                        break;
-                    case 'Incidencias':
-                        showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
-                        break;
-                    case 'Personal de servicio':
-                        showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
-                        break;
-                    default:
-                        showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
-                        break;
-                }
-
-            } catch (error) {
-                console.error("Error:", error);
-                errorP.textContent = error.message;
-                errorP.classList.remove('hidden');
-                errorP.scrollIntoView({ behavior: 'smooth' });
-            } finally {
-                if (saveButton) {
-                    saveButton.disabled = false;
-                    saveButton.textContent = 'Guardar';
+                } else if (fieldDefinition.type === 'file') {
+                    const file = element.files[0];
+                    if (file) {
+                        if (!file.type.startsWith('image/')) {
+                             throw new Error("El archivo debe ser una imagen.");
+                        }
+                        // Comprimir imagen
+                        data[dataField] = await compressImage(file);
+                    } else {
+                        data[dataField] = ""; 
+                        if(isVisible) allFieldsValid = false;
+                    }   
+                } else {
+                    const val = element.value.trim();
+                    data[dataField] = val;
+                    if (!val) allFieldsValid = false;
                 }
             }
-        }, 50); // Pequeño retardo para que la UI respire
+
+            if (!allFieldsValid) {
+                throw new Error("Por favor, rellena todos los campos obligatorios.");
+            }
+            
+            if (saveButton) saveButton.textContent = 'Enviando...';
+
+            const response = await fetch(CONFIG.API_PROXY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)    
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Error en el servidor');
+            }
+            
+            switch (formId) {
+                case 'Proveedor':
+                    showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
+                    break;
+                case 'Eliminar QR':
+                    showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
+                    break;
+                case 'Incidencias':
+                    showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
+                    break;
+                case 'Personal de servicio':
+                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
+                    break;
+                default:
+                    showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
+                    break;
+            }
+
+        } catch (error) {
+            console.error("Error:", error);
+            errorP.textContent = error.message;
+            errorP.classList.remove('hidden');
+            errorP.scrollIntoView({ behavior: 'smooth' });
+        } finally {
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.style.opacity = "1";
+                saveButton.textContent = 'Guardar';
+            }
+        }
     }
 
     function showConfirmationPopup(title, message) {
