@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     let currentUser = {};
+    // Variable global para guardar la foto ya comprimida y lista para enviar
+    let readyToSendPhoto = null; 
 
     // --- ELEMENTOS DEL DOM ---
     const screens = document.querySelectorAll('.screen');
@@ -26,11 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
 
-    // --- UTILIDAD PARA ELIMINAR ACENTOS (ARREGLA EL ERROR DE SELECCIÓN) ---
+    // --- UTILIDAD PARA ELIMINAR ACENTOS ---
     const normalizeId = (str) => {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita tildes
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
                   .toLowerCase()
-                  .replace(/\s+/g, '-'); // Espacios a guiones
+                  .replace(/\s+/g, '-');
     };
 
     // --- NAVEGACIÓN ---
@@ -39,13 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
             if (activeScreen.classList.contains('form-page')) {
+                // Reseteamos la foto lista cada vez que entramos al formulario
+                readyToSendPhoto = null;
                 generateFormContent(activeScreen);
             }
             activeScreen.classList.add('active');
         }
     };
 
-    // --- LOGIN ---
+    // --- LOGIN (Sin cambios) ---
     const rememberedUser = localStorage.getItem('rememberedUser');
     if (rememberedUser && usernameInput) {
         usernameInput.value = rememberedUser;
@@ -53,9 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (loginForm && togglePassword) {
-        togglePassword.classList.remove('fa-eye', 'fa-eye-slash');
-        togglePassword.classList.add('fa-eye');
-
         togglePassword.addEventListener('click', function () {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
@@ -81,21 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 const data = await response.json();
-                if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Credenciales inválidas');
-                }
+                if (!response.ok || !data.success) throw new Error(data.message || 'Credenciales inválidas');
                 
-                currentUser = { 
-                    username: username, 
-                    condominio: data.condominio || (data.data && data.data.condominio) 
-                };
+                currentUser = { username: username, condominio: data.condominio || (data.data && data.data.condominio) };
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));     
                 
-                if (rememberMeCheckbox.checked) {
-                    localStorage.setItem('rememberedUser', username);
-                } else {
-                    localStorage.removeItem('rememberedUser');
-                }
+                if (rememberMeCheckbox.checked) localStorage.setItem('rememberedUser', username);
+                else localStorage.removeItem('rememberedUser');
+                
                 showScreen(SCREENS.MENU);
 
             } catch (error) {
@@ -110,10 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (menuItems.length > 0) {
         menuItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const screenId = item.dataset.screen;
-                if (screenId) showScreen(screenId);
-            });
+            item.addEventListener('click', () => showScreen(item.dataset.screen));
         });
     }
 
@@ -140,19 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const formDefinitions = {
         'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
         'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
-        'Evento': [
-            { label: 'Nombre', type: 'text' }, 
-            { label: 'Torre', type: 'text' }, 
-            { label: 'Departamento', type: 'text' }, 
-            { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } 
-        ],
-        'Proveedor': [
-            { label: 'Nombre', type: 'text' },
-            { label: 'Torre', type: 'text' },
-            { label: 'Departamento', type: 'text' },
-            { label: 'Asunto', type: 'text' },
-            { label: 'Empresa', type: 'text' }
-        ],
+        'Evento': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } ],
+        'Proveedor': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Asunto', type: 'text' }, { label: 'Empresa', type: 'text' } ],
         'Personal de servicio': [
             { label: 'Nombre', type: 'text' },
             { label: 'Torre', type: 'text' },
@@ -169,14 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
         'Eliminar QR': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Relación', type: 'text' }, { label: 'Nombre QR', type: 'text', field: 'Nombre_QR' } ],
-        'Incidencias': [  
-            { label: 'Nombre', type: 'text' },  
-            { label: 'Torre', type: 'text' },  
-            { label: 'Departamento', type: 'text' },  
-            { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] },  
-            { label: 'Reportar a', type: 'select', options: ['Administración', 'Ravens Access'] },
-            { label: 'Incidencia', type: 'textarea' }  
-        ]
+        'Incidencias': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, { label: 'Reportar a', type: 'select', options: ['Administración', 'Ravens Access'] }, { label: 'Incidencia', type: 'textarea' } ]
     };
 
     function generateFormContent(formPage) {
@@ -186,35 +159,32 @@ document.addEventListener('DOMContentLoaded', () => {
         let fieldsHtml = '';
 
         fields.forEach(field => {
-            // Usamos normalizeId para generar IDs consistentes
             const fieldId = field.id || `${normalizeId(formId)}-${normalizeId(field.label)}`;
             const dataField = field.field || field.label;
             
             let inputHtml = '';
+            // Estructura input con IDs normalizados
             if (field.type === 'select') {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
                 inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">${optionsHtml}</select>`;
             } else if (field.type === 'textarea') {
                 inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" rows="4"></textarea>`;
             } else if (field.type === 'file') {
-                inputHtml = `<input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">`;
+                // OJO: Input de archivo
+                inputHtml = `<div class="flex flex-col">
+                                <input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                                <span id="${fieldId}-status" class="text-xs text-gray-500 mt-1"></span>
+                             </div>`;
             } else if (field.type === 'checkbox-group') {
                 inputHtml = `<div id="${fieldId}" data-field="${dataField}" class="mt-1 space-y-2">`;
                 field.options.forEach((option, index) => {
                     const checkboxId = `${fieldId}-${index}`;
-                    inputHtml += `
-                        <div class="flex items-center">
-                            <input type="checkbox" id="${checkboxId}" name="${fieldId}" value="${option}" class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                            <label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">${option}</label>
-                        </div>
-                    `;
+                    inputHtml += `<div class="flex items-center"><input type="checkbox" id="${checkboxId}" name="${fieldId}" value="${option}" class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"><label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">${option}</label></div>`;
                 });
                 inputHtml += `</div>`;
             } else {
                 const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
-                const minAttr = field.min ? `min="${field.min}"` : '';
-                const maxAttr = field.max ? `max="${field.max}"` : '';
-                inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} ${minAttr} ${maxAttr} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">`;
+                inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">`;
             }
             
             const conditionalClass = field.isConditional ? 'conditional-field' : '';
@@ -222,41 +192,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         formPage.innerHTML = `
-            <header class="header-app">
-                <div class="header-logo">
-                    <img src="./icons/logo.png" alt="Ravens Logo">
-                    <span class="header-logo-text">RAVENS ACCESS</span>
-                </div>
-            </header>
-            
-            <div class="form-title-section"> 
-                <h2 class="form-title">${formId}</h2> 
-                <div class="home-icon cursor-pointer"> 
-                    <i class="fa-solid fa-house" style="font-size: 1.5rem;"></i>
-                </div> 
-            </div>
-            
-            <div class="form-container"> 
-                <form class="space-y-4" novalidate> 
-                    ${fieldsHtml} 
-                    <div class="mt-8"> 
-                        <button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">
-                            Guardar
-                        </button> 
-                    </div> 
-                    <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p> 
-                </form> 
+            <header class="header-app"><div class="header-logo"><img src="./icons/logo.png" alt="Ravens Logo"><span class="header-logo-text">RAVENS ACCESS</span></div></header>
+            <div class="form-title-section"><h2 class="form-title">${formId}</h2><div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div></div>
+            <div class="form-container">
+                <form class="space-y-4" novalidate>
+                    ${fieldsHtml}
+                    <div class="mt-8"><button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">Guardar</button></div>
+                    <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p>
+                </form>
             </div>`;
         
         formPage.querySelector('.home-icon').addEventListener('click', () => showScreen(SCREENS.MENU));
         formPage.querySelector('form').addEventListener('submit', handleFormSubmit);
+        
         setupConditionalFields(formPage);
+        // INICIAMOS EL LISTENER DE FOTO AQUI
+        setupFileInputListeners(formPage);
     }
     
     function setupConditionalFields(formPage) {
         const trigger = formPage.querySelector('#tipo-personal');
         const conditionalFields = formPage.querySelectorAll('.conditional-field');
         if (!trigger || conditionalFields.length === 0) return;
+        
         const updateVisibility = () => {
             const shouldBeVisible = trigger.value === 'Eventual';
             conditionalFields.forEach(field => {
@@ -264,8 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     field.classList.add('visible');
                 } else {
                     field.classList.remove('visible');
+                    // Limpiamos el valor si se oculta para que no cause errores
                     const input = field.querySelector('input');
-                    if (input) input.value = '';
+                    if (input) input.value = ''; 
                 }
             });
         };
@@ -273,18 +232,47 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility();
     }
 
-    // --- FUNCIÓN DE COMPRESIÓN OPTIMIZADA (V2 - NO CONGELA) ---
+    // --- NUEVA ESTRATEGIA: PROCESAR FOTO AL SELECCIONAR (NO AL GUARDAR) ---
+    function setupFileInputListeners(formPage) {
+        const fileInputs = formPage.querySelectorAll('input[type="file"]');
+        
+        fileInputs.forEach(input => {
+            input.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                const statusSpan = document.getElementById(`${input.id}-status`);
+                
+                if (!file) {
+                    readyToSendPhoto = null;
+                    if(statusSpan) statusSpan.textContent = "";
+                    return;
+                }
+
+                if(statusSpan) statusSpan.textContent = "Comprimiendo foto... espera un momento.";
+                
+                try {
+                    // Comprimimos YA, no esperamos al submit
+                    readyToSendPhoto = await compressImage(file);
+                    if(statusSpan) {
+                        statusSpan.textContent = "✅ Foto lista y optimizada.";
+                        statusSpan.classList.add("text-green-600");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intenta con otra.";
+                    readyToSendPhoto = null;
+                }
+            });
+        });
+    }
+
     function compressImage(file) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            // Truco: Crea URL temporal sin cargar a memoria
             img.src = URL.createObjectURL(file);
-            
             img.onload = () => {
-                URL.revokeObjectURL(img.src); // Limpia memoria
-
+                URL.revokeObjectURL(img.src);
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600; // Reducimos a 600px
+                const MAX_WIDTH = 600; 
                 const scaleSize = MAX_WIDTH / img.width;
                 
                 if (scaleSize >= 1) {
@@ -297,20 +285,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // Compresión agresiva JPG 60%
+                // Calidad 0.6 es excelente para esto
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 resolve(dataUrl);
             };
-            
-            img.onerror = (error) => reject("Error al cargar la imagen.");
+            img.onerror = () => reject("Error al procesar imagen");
         });
     }
 
-    // --- FUNCIÓN DE ENVÍO ---
+    // --- FUNCIÓN DE ENVÍO (AHORA ES LIGERA Y RÁPIDA) ---
     async function handleFormSubmit(event) {
         event.preventDefault();
-        
         const form = event.target;
         const formPage = form.closest('.form-page');
         const formId = formPage.dataset.formId;
@@ -319,14 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         errorP.classList.add('hidden');
         
-        // 1. Bloqueo inmediato del botón para feedback visual
+        // Feedback visual inmediato
         if (saveButton) {
             saveButton.disabled = true;
-            saveButton.style.opacity = "0.7";
-            saveButton.textContent = 'Procesando foto...';
+            saveButton.textContent = 'Enviando...'; // Ya no dice "Procesando"
         }
 
-        // 2. Pequeño delay para permitir que el navegador pinte el botón antes de procesar
+        // Pequeño delay para que la UI respire
         await new Promise(r => setTimeout(r, 50));
 
         try {
@@ -346,10 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (!element) continue;
 
+                // Verificación de visibilidad (CORREGIDA PARA FECHAS)
                 let isVisible = true;
                 const container = element.closest('.conditional-field');
+                // Si tiene padre condicional Y no tiene clase visible -> Oculto
                 if (container && !container.classList.contains('visible')) isVisible = false;
-                if (!isVisible) continue;
+                
+                if (!isVisible) continue; // Saltamos validación si está oculto
 
                 if (fieldDefinition.type === 'checkbox-group') {
                     const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
@@ -364,15 +351,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                 } else if (fieldDefinition.type === 'file') {
-                    const file = element.files[0];
-                    if (file) {
-                        if (!file.type.startsWith('image/')) {
-                             throw new Error("El archivo debe ser una imagen.");
-                        }
-                        // Comprimir imagen
-                        data[dataField] = await compressImage(file);
+                    // AQUÍ ESTÁ EL CAMBIO CLAVE:
+                    // Ya no procesamos. Solo verificamos si ya tenemos la foto lista.
+                    if (readyToSendPhoto) {
+                        data[dataField] = readyToSendPhoto;
                     } else {
-                        data[dataField] = ""; 
+                        data[dataField] = "";
+                        // Si es obligatorio y visible, fallamos
                         if(isVisible) allFieldsValid = false;
                     }   
                 } else {
@@ -383,11 +368,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!allFieldsValid) {
-                throw new Error("Por favor, rellena todos los campos obligatorios.");
+                throw new Error("Faltan campos obligatorios (Foto, Días, Fechas, etc).");
             }
             
-            if (saveButton) saveButton.textContent = 'Enviando...';
-
+            // Envío a Azure
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -399,21 +383,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.message || 'Error en el servidor');
             }
             
+            // Resetear foto
+            readyToSendPhoto = null;
+
             switch (formId) {
                 case 'Proveedor':
-                    showConfirmationPopup('Acceso de Proveedor Registrado', '¡Guardado! La referencia de acceso se enviará vía WhatsApp.');
-                    break;
-                case 'Eliminar QR':
-                    showConfirmationPopup('QR Eliminado', '¡Guardado! El acceso será eliminado.');
-                    break;
-                case 'Incidencias':
-                    showConfirmationPopup('Incidencia Reportada', 'Gracias por tu reporte, le daremos seguimiento.');
+                    showConfirmationPopup('Guardado', 'Proveedor registrado correctamente.');
                     break;
                 case 'Personal de servicio':
                     showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
                     break;
                 default:
-                    showConfirmationPopup('Acceso Registrado', '¡Guardado! El código QR se enviará vía WhatsApp.');
+                    showConfirmationPopup('Guardado', 'La información se registró correctamente.');
                     break;
             }
 
@@ -425,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             if (saveButton) {
                 saveButton.disabled = false;
-                saveButton.style.opacity = "1";
                 saveButton.textContent = 'Guardar';
             }
         }
@@ -445,6 +425,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeForm = document.querySelector('.form-page.active form');
             if (activeForm) {
                 activeForm.reset();
+                readyToSendPhoto = null; // Limpiar foto en memoria
+                // Limpiar status visual
+                const statusSpans = activeForm.querySelectorAll('span[id$="-status"]');
+                statusSpans.forEach(s => s.textContent = "");
+                
                 const trigger = activeForm.querySelector('#tipo-personal');
                 if (trigger) trigger.dispatchEvent(new Event('change'));
                 const checkboxGroups = activeForm.querySelectorAll('input[type="checkbox"]');
@@ -455,42 +440,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- PWA ---
+    // PWA Logic
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-
-    if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) {
-        return; 
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        if(installPopup) installPopup.style.display = 'block';
-    });
-
-    if (isIos && !isInStandaloneMode && installPopup) {
-        installPopup.style.display = 'block';
-        installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa el botón <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
-        if(btnInstall) btnInstall.style.display = 'none';
-        if(btnCloseInstall) btnCloseInstall.textContent = "Entendido";
-    }
-
-    if (btnInstall) {
-        btnInstall.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`Usuario decidió: ${outcome}`);
-                deferredPrompt = null;
-                installPopup.style.display = 'none';
-            }
-        });
-    }
-
-    if (btnCloseInstall) {
-        btnCloseInstall.addEventListener('click', () => {
-            installPopup.style.display = 'none';
-        });
-    }
+    if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) return; 
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if(installPopup) installPopup.style.display = 'block'; });
+    if (isIos && !isInStandaloneMode && installPopup) { installPopup.style.display = 'block'; installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa el botón <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕"; if(btnInstall) btnInstall.style.display = 'none'; if(btnCloseInstall) btnCloseInstall.textContent = "Entendido"; }
+    if (btnInstall) { btnInstall.addEventListener('click', async () => { if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; console.log(`Usuario decidió: ${outcome}`); deferredPrompt = null; installPopup.style.display = 'none'; } }); }
+    if (btnCloseInstall) { btnCloseInstall.addEventListener('click', () => { installPopup.style.display = 'none'; }); }
 });
