@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- DEFINICIÓN DE FORMULARIOS ---
+    // --- DEFINICIÓN DE FORMULARIOS (CON IDs MANUALES CORREGIDOS) ---
     const formDefinitions = {
         'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
         'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
@@ -160,20 +160,21 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Asunto', type: 'text' },
             { label: 'Empresa', type: 'text' }
         ],
+        // --- AQUÍ ESTÁ LA CORRECCIÓN CLAVE: IDs manuales para evitar acentos ---
         'Personal de servicio': [
-            { label: 'Nombre', type: 'text' },
-            { label: 'Torre', type: 'text' },
-            { label: 'Departamento', type: 'text' },
-            { label: 'Cargo', type: 'text' },
-            { label: 'Foto', type: 'file', field: 'Foto' },
-            { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' },
-            { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
-            { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
-            { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
-            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con' },
+            { label: 'Nombre', type: 'text', id: 'ps-nombre' },
+            { label: 'Torre', type: 'text', id: 'ps-torre' },
+            { label: 'Departamento', type: 'text', id: 'ps-depto' },
+            { label: 'Cargo', type: 'text', id: 'ps-cargo' },
+            { label: 'Foto', type: 'file', field: 'Foto', id: 'ps-foto' },
+            { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada', id: 'ps-hora-entrada' },
+            { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida', id: 'ps-hora-salida' },
+            { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo', id: 'ps-dias' },
+            { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision', id: 'ps-revision' },
+            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con', id: 'ps-salir-con' },
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
-            { label: 'Fecha Inicio', type: 'date', isConditional: true },
-            { label: 'Fecha Fin', type: 'date', isConditional: true }
+            { label: 'Fecha Inicio', type: 'date', isConditional: true, id: 'ps-fecha-inicio' },
+            { label: 'Fecha Fin', type: 'date', isConditional: true, id: 'ps-fecha-fin' }
         ],
         'Eliminar QR': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Relación', type: 'text' }, { label: 'Nombre QR', type: 'text', field: 'Nombre_QR' } ],
         'Incidencias': [  
@@ -193,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let fieldsHtml = '';
 
         fields.forEach(field => {
+            // Usamos el ID manual si existe, si no, lo generamos (para los otros formularios)
             const fieldId = field.id || `${formId.toLowerCase().replace(/\s/g, '-')}-${field.label.toLowerCase().replace(/\s/g, '-')}`;
             const dataField = field.field || field.label;
             
@@ -228,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}</label>${inputHtml}</div>`;
         });
         
-        // ESTRUCTURA DEL FORMULARIO CON BOTÓN VERDE FORZADO
+        // ESTRUCTURA DEL FORMULARIO con 'novalidate' para evitar bloqueos del navegador
         formPage.innerHTML = `
             <header class="header-app">
                 <div class="header-logo">
@@ -245,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             
             <div class="form-container"> 
-                <form class="space-y-4"> 
+                <form class="space-y-4" novalidate> 
                     ${fieldsHtml} 
                     <div class="mt-8"> 
                         <button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">
@@ -291,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- FUNCIÓN handleFormSubmit OPTIMIZADA Y CORREGIDA ---
+    // --- FUNCIÓN handleFormSubmit BLINDADA (ANTIBLOQUEO) ---
     async function handleFormSubmit(event) {
         event.preventDefault();
         
@@ -328,24 +330,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataField = fieldDefinition.field || fieldDefinition.label;
                 const fieldId = fieldDefinition.id || `${formId.toLowerCase().replace(/\s/g, '-')}-${fieldDefinition.label.toLowerCase().replace(/\s/g, '-')}`;
                 
-                // USAMOS getElementById (Más seguro para acentos)
+                // USAMOS getElementById (Más seguro)
                 const element = document.getElementById(fieldId);
                 
-                // Verificar visibilidad (Lógica condicional)
+                // Seguridad si no encuentra el elemento
+                if (!element) continue; 
+                
+                // Verificar visibilidad
                 let isVisible = true;
-                if (element) {
-                    const container = element.closest('.conditional-field');
-                    if (container && !container.classList.contains('visible')) {
-                        isVisible = false;
-                    }
+                const container = element.closest('.conditional-field');
+                if (container && !container.classList.contains('visible')) {
+                    isVisible = false;
                 }
                 
-                // Si el campo no existe o está oculto, saltamos
-                if (!element || !isVisible) continue;
+                if (!isVisible) continue;
 
                 // --- TIPO: CHECKBOX ---
                 if (fieldDefinition.type === 'checkbox-group') {
-                    // Para checkbox, el ID apunta al DIV contenedor, buscamos inputs dentro
                     const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
                     const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
                     
@@ -355,6 +356,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Validación: Si es obligatorio y no es opcional
                     if (dataField !== 'Puede_Salir_Con' && selectedOptions.length === 0) {
                         allFieldsValid = false;
+                        element.style.border = "1px solid red"; // Feedback visual
+                    } else {
+                        element.style.border = "none";
                     }
 
                 // --- TIPO: FOTO (ARCHIVO) ---
@@ -368,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         data[dataField] = await readFileAsBase64(file);
                     } else {
                         data[dataField] = ""; 
-                        allFieldsValid = false; 
+                        allFieldsValid = false; // Foto obligatoria
                     }
 
                 // --- OTROS INPUTS ---
@@ -380,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!allFieldsValid) {
-                throw new Error("Faltan campos obligatorios (Revisa Foto, Días de trabajo u otros datos).");
+                throw new Error("Faltan campos obligatorios. Revisa Foto, Días de trabajo u otros datos marcados.");
             }
             
             // 3. Enviar a Azure
@@ -415,6 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 errorP.scrollIntoView({ behavior: 'smooth' });
             }
         } finally {
+            // SIEMPRE SE LIBERA EL BOTÓN
             if (saveButton) {
                 saveButton.disabled = false;
                 saveButton.textContent = 'Guardar';
@@ -487,6 +492,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
-
-
