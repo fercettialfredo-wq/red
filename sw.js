@@ -1,4 +1,6 @@
-const CACHE_NAME = 'ravens-access-v2'; 
+// CAMBIO 1: Subimos la versión a 'v2' para obligar al navegador a borrar lo viejo
+const CACHE_NAME = 'ravens-access-v2';
+
 const urlsToCache = [
   './',
   './index.html',
@@ -15,7 +17,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  // El skipWaiting hace que el SW nuevo se active de inmediato sin esperar a cerrar la app
+  // Obliga al SW nuevo a activarse inmediatamente
   self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -24,7 +26,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  // Esta parte BORRA los cachés viejos (v1) para que no se "sobrepongan" los estilos
+  // CAMBIO 2: Borrar cachés viejos (v1) para que no se mezclen estilos
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -36,17 +38,16 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  // Reclamar el control de los clientes inmediatamente
-  return self.clients.claim(); 
+  return self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
-  // ESTRATEGIA: Network First (Red primero), luego Caché
-  // Esto asegura que siempre veas los cambios de colores y lógica si tienes internet.
+  // CAMBIO 3: Estrategia "Network First" (Internet primero, caché después)
+  // Esto asegura que siempre veas los cambios recientes.
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Si la red responde bien, actualizamos el caché con la copia nueva
+        // Si hay internet, actualizamos el caché con la versión nueva
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
@@ -58,7 +59,7 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Si no hay internet, usamos lo guardado
+        // Solo si NO hay internet, usa lo guardado
         return caches.match(event.request);
       })
   );
