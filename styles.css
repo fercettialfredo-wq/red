@@ -1,27 +1,19 @@
-/* --- CONFIGURACIÓN BASE --- */
 html, body { 
     height: 100%; 
     margin: 0; 
     padding: 0; 
     overflow-x: hidden; 
 }
-
 body { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-    background-color: #000000; /* Fondo negro para bordes en desktop */
+    background-color: #000000; 
 }
-
 #app-container { 
     min-height: 100vh; 
     display: flex; 
     flex-direction: column; 
-    background-color: #f3f4f6; /* Fondo gris suave para la app interna */
-    position: relative;
-    width: 100%;
-    max-width: 100%;
+    background-color: #000000; 
 }
-
-/* --- CABECERA --- */
 .header-app { 
     background-color: #000000; 
     color: white; 
@@ -31,126 +23,82 @@ body {
     justify-content: space-between;
     flex-shrink: 0; 
 }
-
 .header-logo { 
     display: flex; 
     align-items: center; 
 }
-
 .header-logo img { 
     height: 40px; 
     margin-right: 15px; 
 }
-
 .header-logo-text { 
     font-weight: bold; 
-    font-size: 1.5rem; 
+    font-size: 1.75rem; 
     color: white; 
     text-transform: uppercase; 
 }
-
-/* --- PANTALLAS (LÓGICA VISUAL CRÍTICA) --- */
 .screen { 
-    display: none !important; /* Oculta todo por defecto */
+    display: none; 
     flex-grow: 1; 
     flex-direction: column; 
-    width: 100%;
-    background-color: #f3f4f6;
-    min-height: 100vh;
 }
-
 .screen.active { 
-    display: flex !important; /* Solo muestra la que tenga la clase active */
+    display: flex; 
 }
-
-/* --- LOGIN SCREEN --- */
 #login-screen { 
     background-color: #000000; 
     align-items: center; 
     justify-content: center; 
     padding: 1rem; 
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 50;
 }
-
 .login-header { 
     display: flex; 
     flex-direction: column; 
     align-items: center; 
     margin-bottom: 2rem; 
+    margin-top: -10vh; 
 }
-
 .login-header img { 
-    height: 80px; 
+    height: 100px; 
     margin-bottom: 1rem; 
 }
-
 .login-header-text { 
     font-weight: bold; 
-    font-size: 2rem; 
+    font-size: 2.25rem; 
     color: white; 
     text-transform: uppercase; 
-    text-align: center;
 }
-
 .main-title-box { 
     background-color: #5a1a2e; 
-    padding: 0.8rem 2rem; 
+    padding: 1rem 2.5rem; 
     border-radius: 0.5rem; 
-    font-size: 1.2rem; 
+    font-size: 1.5rem; 
     font-weight: bold; 
     color: white; 
     text-transform: uppercase; 
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    margin-top: 1.5rem; 
     margin-bottom: 2rem; 
-    text-align: center;
 }
-
-/* --- INPUTS Y FORMULARIOS --- */
 .password-container { 
     position: relative; 
     display: flex; 
     align-items: center; 
 }
-
 #togglePassword { 
     position: absolute; 
     right: 0.75rem; 
     cursor: pointer; 
     color: #4a5568; 
 }
-
-input, select, textarea { 
-    background-color: #ffffff !important; 
-    color: #1f2937 !important; 
-    border: 1px solid #cbd5e1 !important; 
-    font-size: 16px !important; /* Evita zoom en iPhone */
-}
-
-input:focus, select:focus, textarea:focus { 
-    outline: none;
-    border-color: #5a1a2e !important;
-    box-shadow: 0 0 0 2px rgba(90, 26, 46, 0.2); 
-}
-
-input[type="password"] { 
-    padding-right: 2.5rem; 
-}
-
-/* --- MENÚ GRID --- */
 .main-menu-grid { 
     flex-grow: 1; 
     display: grid; 
     grid-template-columns: repeat(2, 1fr); 
     gap: 1rem; 
     padding: 1.5rem; 
-    background-color: #f3f4f6; 
+    background-color: #000000; 
 }
-
 .menu-item { 
     background-color: #5a1a2e; 
     border-radius: 0.5rem; 
@@ -158,42 +106,29 @@ input[type="password"] {
     text-align: center; 
     color: white; 
     cursor: pointer; 
-    transition: transform 0.1s, background-color 0.3s; 
+    transition: background-color 0.3s; 
     display: flex; 
     flex-direction: column; 
     justify-content: center; 
     align-items: center; 
     font-weight: bold; 
-    font-size: 1rem; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 1.1rem; 
 }
-
-.menu-item:active { 
-    transform: scale(0.98); 
+.menu-item:hover { 
+    background-color: #4e1628; 
 }
-
 .menu-item-icon { 
-    height: 50px; 
+    height: 64px; 
     display: flex; 
     align-items: center; 
     justify-content: center; 
     margin-bottom: 0.5rem; 
 }
-
-.icon-image {
-    width: 50px;  
-    height: 50px;  
-    object-fit: contain;
-    filter: brightness(0) invert(1); /* Vuelve blancos los iconos negros */
-}
-
-/* --- PÁGINAS DE FORMULARIO --- */
 .form-page { 
     flex-direction: column; 
     height: 100%; 
     background-color: #ffffff;
 }
-
 .form-title-section { 
     background-color: #1f2937; 
     color: white; 
@@ -203,22 +138,16 @@ input[type="password"] {
     align-items: center; 
     flex-shrink: 0; 
 }
-
 .form-title { 
     font-size: 1.25rem; 
     font-weight: bold; 
-    text-transform: capitalize;
 }
-
 .form-container { 
     padding: 1.5rem; 
     flex-grow: 1; 
     overflow-y: auto; 
     background-color: #ffffff; 
-    padding-bottom: 80px; /* Espacio para botón flotante o scroll */
 }
-
-/* --- BOTONES --- */
 .btn-primary, .btn-save {
     color: white;
     padding: 0.75rem 1.5rem;
@@ -226,26 +155,46 @@ input[type="password"] {
     font-weight: bold;
     text-align: center;
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: background-color 0.2s ease;
     border: none;
     width: 100%;
-    display: block;
 }
-
 .btn-primary { 
     background-color: #5a1a2e; 
 }
-
+.btn-primary:hover { 
+    background-color: #4e1628; 
+}
 .btn-save { 
-    background-color: #16a34a !important; 
+    background-color: #16a34a; 
+}
+.btn-save:hover { 
+    background-color: #128a3f; 
+}
+.btn-primary:disabled, .btn-save:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
 }
 
-.btn-save:disabled, .btn-primary:disabled {
-    background-color: #9ca3af !important;
-    cursor: wait;
+/* AQUÍ ESTÁ EL ARREGLO VISUAL PARA LOS INPUTS */
+input, select, textarea { 
+    border-color: #cbd5e1 !important; 
+    color: #1f2937 !important;
+    background-color: #ffffff !important; /* Fuerza fondo blanco */
 }
 
-/* --- UTILIDADES --- */
+input:focus, select:focus, textarea:focus { 
+    --tw-ring-color: #5a1a2e !important; 
+    border-color: #5a1a2e !important; 
+}
+input[type="password"] { 
+    padding-right: 2.5rem; 
+}
+.icon-image {
+    width: 64px;  
+    height: 64px;  
+}
+
 input[type="password"]::-webkit-password-reveal-button {
     display: none;
     -webkit-appearance: none;
@@ -254,11 +203,6 @@ input[type="password"]::-webkit-password-reveal-button {
 .conditional-field { 
     display: none; 
 }
-
 .conditional-field.visible {
     display: block;
-}
-
-.hidden {
-    display: none !important;
 }
