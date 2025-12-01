@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ravens-access-v2'; // Cambiamos a v2 para forzar actualización
+const CACHE_NAME = 'ravens-access-v2'; 
 const urlsToCache = [
   './',
   './index.html',
