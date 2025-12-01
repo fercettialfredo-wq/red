@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     let currentUser = {};
-    // Variable global para guardar la foto ya comprimida y lista para enviar
     let readyToSendPhoto = null; 
 
     // --- ELEMENTOS DEL DOM ---
@@ -19,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
-    const rememberMeCheckbox = document.getElementById('remember-me'); // Checkbox de "Recordarme"
+    const rememberMeCheckbox = document.getElementById('remember-me');
     const loginButton = document.getElementById('login-button');
     const togglePassword = document.getElementById('togglePassword');
     const loginError = document.getElementById('login-error');
@@ -27,13 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('confirmation-popup');
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
-    
-    // Elementos PWA
-    const installPopup = document.getElementById('install-popup');
-    const btnInstall = document.getElementById('btn-install');
-    const btnCloseInstall = document.getElementById('btn-close-install');
-    const installText = document.getElementById('install-text');
-    let deferredPrompt;
 
     // --- UTILIDAD PARA ELIMINAR ACENTOS ---
     const normalizeId = (str) => {
@@ -44,41 +36,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NAVEGACIÓN ---
     const showScreen = (screenId) => {
-        // Ocultar todas las pantallas
         screens.forEach(screen => screen.classList.remove('active'));
-        
-        // Mostrar la pantalla solicitada
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
             if (activeScreen.classList.contains('form-page')) {
-                // Reseteamos la foto lista cada vez que entramos al formulario
                 readyToSendPhoto = null;
                 generateFormContent(activeScreen);
             }
             activeScreen.classList.add('active');
-            window.scrollTo(0, 0); // Asegurar que suba al inicio
+            // Asegura que al cambiar de pantalla se vaya arriba
+            window.scrollTo(0, 0); 
         }
     };
 
     // --- GESTIÓN DE SESIÓN (LOGIN PERSISTENTE) ---
+    // Esta función revisa si ya entraste antes
     const checkSession = () => {
-        // 1. Buscamos primero en LocalStorage (Persistente - Si marcó "Recordarme")
-        // 2. Si no, buscamos en SessionStorage (Temporal - Si no marcó)
+        // Busca en localStorage (Permanente) O en sessionStorage (Temporal)
         const savedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
         
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            // Si hay usuario guardado, vamos directo al menú
-            showScreen(SCREENS.MENU);
+            showScreen(SCREENS.MENU); // Si hay usuario, salta el login
         } else {
-            // Si no, mostramos login
             showScreen(SCREENS.LOGIN);
         }
     };
 
+    // Ejecutamos la revisión apenas carga la app
+    checkSession();
+
     // --- LOGIN ---
+    // Nota: Eliminé el bloque viejo de "rememberedUser" porque ahora guardamos la sesión completa
     if (loginForm && togglePassword) {
-        // Ver/Ocultar contraseña
         togglePassword.addEventListener('click', function () {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
@@ -106,22 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Credenciales inválidas');
                 
-                // Guardar usuario en memoria
-                currentUser = { 
-                    username: username, 
-                    condominio: data.condominio || (data.data && data.data.condominio) 
-                };
+                currentUser = { username: username, condominio: data.condominio || (data.data && data.data.condominio) };
                 
                 // --- LÓGICA DE RECORDARME ---
                 if (rememberMeCheckbox.checked) {
-                    // Guardado PERMANENTE (sobrevive al cerrar la app)
+                    // Guardar PERMANENTE (funciona aunque cierres la app)
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    // Limpiamos sessionStorage para evitar duplicados
+                    // Limpiamos el temporal para no confundir
                     sessionStorage.removeItem('currentUser');
                 } else {
-                    // Guardado TEMPORAL (se borra al cerrar la app)
+                    // Guardar TEMPORAL (se borra al cerrar)
                     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    // Limpiamos localStorage por si antes había marcado "Recordarme"
+                    // Limpiamos el permanente
                     localStorage.removeItem('currentUser');
                 }
                 
@@ -137,30 +123,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- LOGOUT (CERRAR SESIÓN) ---
-    if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
-            currentUser = {};
-            // Borrar de ambos almacenamientos para asegurar el cierre
-            sessionStorage.removeItem('currentUser');
-            localStorage.removeItem('currentUser');
-            
-            if(passwordInput) passwordInput.value = '';
-            showScreen(SCREENS.LOGIN);
-        });
-    }
-
-    // Ejecutar verificación de sesión al iniciar
-    checkSession();
-
-    // Navegación Menú Principal
     if (menuItems.length > 0) {
         menuItems.forEach(item => {
             item.addEventListener('click', () => showScreen(item.dataset.screen));
         });
     }
 
-    // --- DEFINICIONES DE FORMULARIOS ---
+    // --- LOGOUT (Modificado para borrar todo) ---
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            currentUser = {};
+            // Borrar de AMBOS lugares para asegurar que se cierre
+            sessionStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUser');
+            
+            passwordInput.value = '';
+            showScreen(SCREENS.LOGIN);
+        });
+    }
+
+    // --- DEFINICIONES DE FORMULARIOS (Igual que antes) ---
     const formDefinitions = {
         'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
         'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
@@ -196,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const dataField = field.field || field.label;
             
             let inputHtml = '';
-            
             if (field.type === 'select') {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
                 inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">${optionsHtml}</select>`;
@@ -262,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility();
     }
 
-    // --- PROCESAR FOTO AL SELECCIONAR ---
     function setupFileInputListeners(formPage) {
         const fileInputs = formPage.querySelectorAll('input[type="file"]');
         
@@ -283,15 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     readyToSendPhoto = await compressImage(file);
                     if(statusSpan) {
                         statusSpan.textContent = "✅ Foto lista y optimizada.";
-                        statusSpan.classList.remove("text-gray-500");
-                        statusSpan.classList.add("text-green-600", "font-bold");
+                        statusSpan.classList.add("text-green-600");
                     }
                 } catch (error) {
                     console.error(error);
-                    if(statusSpan) {
-                        statusSpan.textContent = "❌ Error en la foto. Intenta con otra.";
-                        statusSpan.classList.add("text-red-600");
-                    }
+                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intenta con otra.";
                     readyToSendPhoto = null;
                 }
             });
@@ -325,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- ENVIAR FORMULARIO ---
     async function handleFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
@@ -360,7 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (!element) continue;
 
-                // Verificación de visibilidad
                 let isVisible = true;
                 const container = element.closest('.conditional-field');
                 if (container && !container.classList.contains('visible')) isVisible = false;
@@ -463,7 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // PWA Logic (Instalación)
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
     if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) return; 
