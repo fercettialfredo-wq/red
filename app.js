@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
-    const rememberMeCheckbox = document.getElementById('remember-me');
+    const rememberMeCheckbox = document.getElementById('remember-me'); // Checkbox de "Recordarme"
     const loginButton = document.getElementById('login-button');
     const togglePassword = document.getElementById('togglePassword');
     const loginError = document.getElementById('login-error');
@@ -27,6 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('confirmation-popup');
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
+    
+    // Elementos PWA
+    const installPopup = document.getElementById('install-popup');
+    const btnInstall = document.getElementById('btn-install');
+    const btnCloseInstall = document.getElementById('btn-close-install');
+    const installText = document.getElementById('install-text');
+    let deferredPrompt;
 
     // --- UTILIDAD PARA ELIMINAR ACENTOS ---
     const normalizeId = (str) => {
@@ -37,7 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NAVEGACIÓN ---
     const showScreen = (screenId) => {
+        // Ocultar todas las pantallas
         screens.forEach(screen => screen.classList.remove('active'));
+        
+        // Mostrar la pantalla solicitada
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
             if (activeScreen.classList.contains('form-page')) {
@@ -46,17 +56,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 generateFormContent(activeScreen);
             }
             activeScreen.classList.add('active');
+            window.scrollTo(0, 0); // Asegurar que suba al inicio
         }
     };
 
-    // --- LOGIN (Sin cambios) ---
-    const rememberedUser = localStorage.getItem('rememberedUser');
-    if (rememberedUser && usernameInput) {
-        usernameInput.value = rememberedUser;
-        rememberMeCheckbox.checked = true;
-    }
+    // --- GESTIÓN DE SESIÓN (LOGIN PERSISTENTE) ---
+    const checkSession = () => {
+        // 1. Buscamos primero en LocalStorage (Persistente - Si marcó "Recordarme")
+        // 2. Si no, buscamos en SessionStorage (Temporal - Si no marcó)
+        const savedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+        
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            // Si hay usuario guardado, vamos directo al menú
+            showScreen(SCREENS.MENU);
+        } else {
+            // Si no, mostramos login
+            showScreen(SCREENS.LOGIN);
+        }
+    };
 
+    // --- LOGIN ---
     if (loginForm && togglePassword) {
+        // Ver/Ocultar contraseña
         togglePassword.addEventListener('click', function () {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
@@ -84,11 +106,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Credenciales inválidas');
                 
-                currentUser = { username: username, condominio: data.condominio || (data.data && data.data.condominio) };
-                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));     
+                // Guardar usuario en memoria
+                currentUser = { 
+                    username: username, 
+                    condominio: data.condominio || (data.data && data.data.condominio) 
+                };
                 
-                if (rememberMeCheckbox.checked) localStorage.setItem('rememberedUser', username);
-                else localStorage.removeItem('rememberedUser');
+                // --- LÓGICA DE RECORDARME ---
+                if (rememberMeCheckbox.checked) {
+                    // Guardado PERMANENTE (sobrevive al cerrar la app)
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    // Limpiamos sessionStorage para evitar duplicados
+                    sessionStorage.removeItem('currentUser');
+                } else {
+                    // Guardado TEMPORAL (se borra al cerrar la app)
+                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    // Limpiamos localStorage por si antes había marcado "Recordarme"
+                    localStorage.removeItem('currentUser');
+                }
                 
                 showScreen(SCREENS.MENU);
 
@@ -102,30 +137,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- LOGOUT (CERRAR SESIÓN) ---
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            currentUser = {};
+            // Borrar de ambos almacenamientos para asegurar el cierre
+            sessionStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUser');
+            
+            if(passwordInput) passwordInput.value = '';
+            showScreen(SCREENS.LOGIN);
+        });
+    }
+
+    // Ejecutar verificación de sesión al iniciar
+    checkSession();
+
+    // Navegación Menú Principal
     if (menuItems.length > 0) {
         menuItems.forEach(item => {
             item.addEventListener('click', () => showScreen(item.dataset.screen));
         });
     }
-
-    if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
-            currentUser = {};
-            sessionStorage.removeItem('currentUser');
-            passwordInput.value = '';
-            showScreen(SCREENS.LOGIN);
-        });
-    }
-
-    const checkSession = () => {
-        const savedUser = sessionStorage.getItem('currentUser');
-        if (savedUser) {
-            currentUser = JSON.parse(savedUser);
-            showScreen(SCREENS.MENU);
-        } else {
-            showScreen(SCREENS.LOGIN);
-        }
-    };
 
     // --- DEFINICIONES DE FORMULARIOS ---
     const formDefinitions = {
@@ -163,14 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const dataField = field.field || field.label;
             
             let inputHtml = '';
-            // Estructura input con IDs normalizados
+            
             if (field.type === 'select') {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
                 inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">${optionsHtml}</select>`;
             } else if (field.type === 'textarea') {
                 inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" rows="4"></textarea>`;
             } else if (field.type === 'file') {
-                // OJO: Input de archivo
                 inputHtml = `<div class="flex flex-col">
                                 <input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                                 <span id="${fieldId}-status" class="text-xs text-gray-500 mt-1"></span>
@@ -206,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
         formPage.querySelector('form').addEventListener('submit', handleFormSubmit);
         
         setupConditionalFields(formPage);
-        // INICIAMOS EL LISTENER DE FOTO AQUI
         setupFileInputListeners(formPage);
     }
     
@@ -222,7 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     field.classList.add('visible');
                 } else {
                     field.classList.remove('visible');
-                    // Limpiamos el valor si se oculta para que no cause errores
                     const input = field.querySelector('input');
                     if (input) input.value = ''; 
                 }
@@ -232,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVisibility();
     }
 
-    // --- NUEVA ESTRATEGIA: PROCESAR FOTO AL SELECCIONAR (NO AL GUARDAR) ---
+    // --- PROCESAR FOTO AL SELECCIONAR ---
     function setupFileInputListeners(formPage) {
         const fileInputs = formPage.querySelectorAll('input[type="file"]');
         
@@ -250,15 +280,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(statusSpan) statusSpan.textContent = "Comprimiendo foto... espera un momento.";
                 
                 try {
-                    // Comprimimos YA, no esperamos al submit
                     readyToSendPhoto = await compressImage(file);
                     if(statusSpan) {
                         statusSpan.textContent = "✅ Foto lista y optimizada.";
-                        statusSpan.classList.add("text-green-600");
+                        statusSpan.classList.remove("text-gray-500");
+                        statusSpan.classList.add("text-green-600", "font-bold");
                     }
                 } catch (error) {
                     console.error(error);
-                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intenta con otra.";
+                    if(statusSpan) {
+                        statusSpan.textContent = "❌ Error en la foto. Intenta con otra.";
+                        statusSpan.classList.add("text-red-600");
+                    }
                     readyToSendPhoto = null;
                 }
             });
@@ -285,7 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                // Calidad 0.6 es excelente para esto
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 resolve(dataUrl);
             };
@@ -293,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- FUNCIÓN DE ENVÍO (AHORA ES LIGERA Y RÁPIDA) ---
+    // --- ENVIAR FORMULARIO ---
     async function handleFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
@@ -304,13 +336,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         errorP.classList.add('hidden');
         
-        // Feedback visual inmediato
         if (saveButton) {
             saveButton.disabled = true;
-            saveButton.textContent = 'Enviando...'; // Ya no dice "Procesando"
+            saveButton.textContent = 'Enviando...';
         }
 
-        // Pequeño delay para que la UI respire
         await new Promise(r => setTimeout(r, 50));
 
         try {
@@ -330,13 +360,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (!element) continue;
 
-                // Verificación de visibilidad (CORREGIDA PARA FECHAS)
+                // Verificación de visibilidad
                 let isVisible = true;
                 const container = element.closest('.conditional-field');
-                // Si tiene padre condicional Y no tiene clase visible -> Oculto
                 if (container && !container.classList.contains('visible')) isVisible = false;
                 
-                if (!isVisible) continue; // Saltamos validación si está oculto
+                if (!isVisible) continue;
 
                 if (fieldDefinition.type === 'checkbox-group') {
                     const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
@@ -351,13 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                 } else if (fieldDefinition.type === 'file') {
-                    // AQUÍ ESTÁ EL CAMBIO CLAVE:
-                    // Ya no procesamos. Solo verificamos si ya tenemos la foto lista.
                     if (readyToSendPhoto) {
                         data[dataField] = readyToSendPhoto;
                     } else {
                         data[dataField] = "";
-                        // Si es obligatorio y visible, fallamos
                         if(isVisible) allFieldsValid = false;
                     }   
                 } else {
@@ -371,7 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error("Faltan campos obligatorios (Foto, Días, Fechas, etc).");
             }
             
-            // Envío a Azure
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -383,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.message || 'Error en el servidor');
             }
             
-            // Resetear foto
             readyToSendPhoto = null;
 
             switch (formId) {
@@ -425,8 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeForm = document.querySelector('.form-page.active form');
             if (activeForm) {
                 activeForm.reset();
-                readyToSendPhoto = null; // Limpiar foto en memoria
-                // Limpiar status visual
+                readyToSendPhoto = null;
                 const statusSpans = activeForm.querySelectorAll('span[id$="-status"]');
                 statusSpans.forEach(s => s.textContent = "");
                 
@@ -440,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // PWA Logic
+    // PWA Logic (Instalación)
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
     if (window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode) return; 
