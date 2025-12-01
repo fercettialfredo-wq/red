@@ -1,205 +1,37 @@
-html, body { 
-    height: 100%; 
-    margin: 0; 
-    padding: 0; 
-    overflow-x: hidden; 
-}
-body { 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-    background-color: #000000; 
-}
+/* Asegura que el contenedor de la app tenga fondo sólido si es necesario */
 #app-container { 
-    min-height: 100vh; 
-    display: flex; 
-    flex-direction: column; 
-    background-color: #000000; 
+    background-color: #f3f4f6; /* Un gris muy suave, mejor que negro puro para el fondo de la app */
+    /* El negro se queda en el body para los bordes en desktop */
 }
-.header-app { 
-    background-color: #000000; 
-    color: white; 
-    padding: 1rem 1.5rem; 
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between;
-    flex-shrink: 0; 
+
+/* Arreglo para inputs: Quitamos los !important agresivos */
+input, select, textarea { 
+    background-color: #ffffff; /* Asegura fondo blanco en inputs */
+    color: #1f2937; /* Texto gris oscuro */
+    border: 1px solid #cbd5e1; /* Borde suave */
 }
-.header-logo { 
-    display: flex; 
-    align-items: center; 
+
+/* Solo usamos !important para el focus ring de tu color marca */
+input:focus, select:focus, textarea:focus { 
+    outline: none;
+    border-color: #5a1a2e !important;
+    box-shadow: 0 0 0 2px rgba(90, 26, 46, 0.2); /* Anillo suave al enfocar */
 }
-.header-logo img { 
-    height: 40px; 
-    margin-right: 15px; 
-}
-.header-logo-text { 
-    font-weight: bold; 
-    font-size: 1.75rem; 
-    color: white; 
-    text-transform: uppercase; 
-}
-.screen { 
-    display: none; 
-    flex-grow: 1; 
-    flex-direction: column; 
-}
-.screen.active { 
-    display: flex; 
-}
-#login-screen { 
-    background-color: #000000; 
-    align-items: center; 
-    justify-content: center; 
-    padding: 1rem; 
-}
-.login-header { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    margin-bottom: 2rem; 
-    margin-top: -10vh; 
-}
-.login-header img { 
-    height: 100px; 
-    margin-bottom: 1rem; 
-}
-.login-header-text { 
-    font-weight: bold; 
-    font-size: 2.25rem; 
-    color: white; 
-    text-transform: uppercase; 
-}
-.main-title-box { 
-    background-color: #5a1a2e; 
-    padding: 1rem 2.5rem; 
-    border-radius: 0.5rem; 
-    font-size: 1.5rem; 
-    font-weight: bold; 
-    color: white; 
-    text-transform: uppercase; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-    margin-top: 1.5rem; 
-    margin-bottom: 2rem; 
-}
-.password-container { 
-    position: relative; 
-    display: flex; 
-    align-items: center; 
-}
-#togglePassword { 
-    position: absolute; 
-    right: 0.75rem; 
-    cursor: pointer; 
-    color: #4a5568; 
-}
-.main-menu-grid { 
-    flex-grow: 1; 
-    display: grid; 
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 1rem; 
-    padding: 1.5rem; 
-    background-color: #000000; 
-}
-.menu-item { 
-    background-color: #5a1a2e; 
-    border-radius: 0.5rem; 
-    padding: 1rem; 
-    text-align: center; 
-    color: white; 
-    cursor: pointer; 
-    transition: background-color 0.3s; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    font-weight: bold; 
-    font-size: 1.1rem; 
-}
-.menu-item:hover { 
-    background-color: #4e1628; 
-}
-.menu-item-icon { 
-    height: 64px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    margin-bottom: 0.5rem; 
-}
-.form-page { 
-    flex-direction: column; 
-    height: 100%; 
-    background-color: #ffffff;
-}
-.form-title-section { 
-    background-color: #1f2937; 
-    color: white; 
-    padding: 1rem 1.5rem; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    flex-shrink: 0; 
-}
-.form-title { 
-    font-size: 1.25rem; 
-    font-weight: bold; 
-}
-.form-container { 
-    padding: 1.5rem; 
-    flex-grow: 1; 
-    overflow-y: auto; 
+
+/* Asegurar que las pantallas tengan fondo blanco y cubran todo */
+.screen {
     background-color: #ffffff; 
-}
-.btn-primary, .btn-save {
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
-    font-weight: bold;
-    text-align: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border: none;
+    min-height: 100vh;
     width: 100%;
 }
-.btn-primary { 
-    background-color: #5a1a2e; 
-}
-.btn-primary:hover { 
-    background-color: #4e1628; 
-}
-.btn-save { 
-    background-color: #16a34a; 
-}
-.btn-save:hover { 
-    background-color: #128a3f; 
-}
-.btn-primary:disabled, .btn-save:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-}
-input, select, textarea { 
-    border-color: #cbd5e1 !important; 
-    color: #1f2937 !important; 
-}
-input:focus, select:focus, textarea:focus { 
-    --tw-ring-color: #5a1a2e !important; 
-    border-color: #5a1a2e !important; 
-}
-input[type="password"] { 
-    padding-right: 2.5rem; 
-}
-.icon-image {
-    width: 64px;  
-    height: 64px;  
+
+/* Arreglo para el menú */
+.main-menu-grid {
+    background-color: #f3f4f6; /* Fondo gris suave para el menú */
 }
 
-input[type="password"]::-webkit-password-reveal-button {
-    display: none;
-    -webkit-appearance: none;
-}
-
-/* **ESTAS SON LAS CLASES NECESARIAS** */
-.conditional-field { 
-    display: none; 
-}
-.conditional-field.visible {
-    display: block;
+/* Arreglo específico para el Login */
+#login-screen {
+    background-color: #000000; /* El login se ve bien en negro */
+    min-height: 100vh;
 }
