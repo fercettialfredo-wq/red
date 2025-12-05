@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario - Ravens Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* =========================================
+           CONFIGURACIÓN PARA IMPRESIÓN (PDF)
+           ========================================= */
+        @page {
+            size: landscape; /* Hoja horizontal */
+            margin: 0;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page-break {
+                break-after: page;
+                page-break-after: always;
+            }
+            /* Ocultar scrollbars al imprimir */
+            ::-webkit-scrollbar { display: none; }
+        }
+
+        /* =========================================
+           ESTILOS GENERALES
+           ========================================= */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            color: #1f2937;
+        }
+        
+        /* COLORES */
+        :root {
+            --color-vino: #722F37;
+            --color-verde: #16a34a;
+        }
+        
+        .bg-vino { background-color: var(--color-vino) !important; }
+        .text-vino { color: var(--color-vino) !important; }
+        .border-vino { border-color: var(--color-vino) !important; }
+
+        /* CONTENEDOR DE PÁGINA (PLANO) */
+        .slide-page {
+            width: 100vw;
+            height: 100vh; /* Ocupa toda la pantalla */
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: white;
+            box-sizing: border-box;
+            border-bottom: 2px dashed #ddd; /* Línea guía para ver dónde corta en pantalla */
+            overflow: hidden;
+        }
+
+        /* CELULAR MOCKUP */
+        .phone-mockup {
+            width: 320px;
+            height: 640px;
+            border: 12px solid #1f2937;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            background: #ffffff;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+            margin-right: 60px;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9); /* Ligeramente más pequeño para asegurar márgenes */
+        }
+
+        .header-app {
+            background-color: var(--color-vino);
+            padding: 15px;
+            color: white;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header-app img {
+            height: 30px;
+            width: auto;
+        }
+
+        .phone-content {
+            flex: 1;
+            overflow: hidden; /* Evitar scroll dentro del PDF */
+            background-color: #f9fafb;
+            position: relative;
+            padding: 20px;
+        }
+
+        /* BROWSER BAR */
+        .browser-bar {
+            background: #f3f4f6;
+            padding: 10px;
+            border-bottom: 1px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #6b7280;
+            gap: 5px;
+        }
+        .browser-url {
+            background: #e5e7eb;
+            padding: 5px 15px;
+            border-radius: 15px;
+            width: 70%;
+            text-align: center;
+        }
+
+        /* TEXTOS */
+        .text-content {
+            max-width: 550px;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            color: var(--color-vino);
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.1;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        /* LISTAS */
+        .formal-list li {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            font-size: 1rem;
+            color: #4b5563;
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid var(--color-verde);
+        }
+        .formal-list i {
+            margin-top: 4px;
+            margin-right: 15px;
+            color: var(--color-verde);
+            font-size: 1.3rem;
+        }
+
+        /* POPUP INSTALACIÓN - ACTUALIZADO: FLOTANTE Y MÁS ARRIBA */
+        .install-popup-mock {
+            position: absolute;
+            bottom: 100px; /* SUBIDO SIGNIFICATIVAMENTE */
+            left: 20px;    /* Margen izquierdo */
+            right: 20px;   /* Margen derecho */
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px; /* Bordes redondeados */
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra flotante */
+            z-index: 30;
+            display: block;
+        }
+
+        /* Paso indicador (Color Vino) */
+        .step-tag {
+            display: inline-block;
+            background-color: var(--color-vino); /* COLOR VINO */
+            color: white;
+            font-weight: bold;
+            padding: 5px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- PÁGINA 1: PORTADA -->
+<div class="slide-page page-break">
+    <div style="text-align: center;">
+        <div class="inline-block p-8 rounded-full bg-gray-100 mb-6 border-4 border-vino">
+            <!-- LOGO REAL -->
+            <img src="./icons/logo.png" alt="Logo" style="height: 100px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+            <i class="fa-solid fa-building-user text-6xl text-vino" style="display:none"></i>
+        </div>
+        <h1 style="font-size: 3.5rem; font-weight: 800; color: #1f2937; margin-bottom: 0;">Ravens Access</h1>
+        <h2 style="font-size: 2rem; font-weight: 400; color: #6b7280; margin-top: 10px;">Manual de Usuario</h2>
+        <div class="mt-8 p-4 bg-gray-50 rounded-lg inline-block border border-gray-200">
+            <p style="font-size: 1.1rem; margin: 0; color: #4b5563;">
+                Guía paso a paso para el registro de accesos y servicios.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- PÁGINA 2: INSTALACIÓN -->
+<div class="slide-page page-break">
+    <div class="phone-mockup">
+        <div class="browser-bar">
+            <i class="fa-solid fa-lock text-xs"></i>
+            <div class="browser-url">ravens-access.com</div>
+            <i class="fa-solid fa-rotate-right"></i>
+        </div>
+
+        <div class="phone-content flex flex-col justify-start opacity-30 pt-10">
+            <div class="text-center mb-8">
+                <!-- LOGO REAL EN PANTALLA -->
+                <img src="./icons/logo.png" class="w-16 h-16 rounded-lg mx-auto mb-3 object-contain bg-white" onerror="this.src='https://via.placeholder.com/64?text=App'">
+                <h1 class="text-xl font-bold text-gray-400">Ravens Access</h1>
+            </div>
+        </div>
+
+        <div class="install-popup-mock">
+            <p class="text-sm text-gray-700 mb-3 leading-snug font-semibold">
+                Instalar Aplicación
+            </p>
+            <p class="text-xs text-gray-600 mb-4 leading-tight">
+                Agregue Ravens Access a su pantalla de inicio para un acceso rápido y seguro.
+            </p>
+            
+            <!-- iPhone UI -->
+            <div class="bg-blue-50 p-3 rounded border border-blue-100 mb-3">
+                <p class="text-[10px] text-blue-900 m-0 font-bold mb-1"><i class="fa-brands fa-apple"></i> iPhone:</p>
+                <p class="text-[10px] text-blue-800 m-0 leading-tight">1. Pulsa <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕</p>
+            </div>
+
+            <!-- Android UI -->
+            <div class="flex gap-2 justify-end items-center border-t pt-3 mt-2">
+                 <span class="text-xs text-gray-400 mr-auto italic"><i class="fa-brands fa-android text-green-600"></i> Android</span>
+                <!-- BOTÓN VINO AQUÍ -->
+                <button class="px-4 py-2 text-xs text-white rounded font-medium shadow-sm bg-vino">Instalar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-content">
+        <span class="step-tag">Paso 1</span>
+        <h2>Instalación de la App</h2>
+        <p>Al entrar por primera vez, verá un aviso en la parte inferior de su pantalla.</p>
+        
+        <div class="grid gap-3">
+            <div class="bg-white p-3 rounded-lg border-l-4 border-gray-400 shadow-sm flex gap-3">
+                <div class="text-2xl text-gray-800"><i class="fa-brands fa-apple"></i></div>
+                <div>
+                    <h4 class="font-bold text-gray-900 text-sm mb-1">iPhone (iOS)</h4>
+                    <p class="text-sm text-gray-600 m-0 leading-snug">
+                        Siga las instrucciones del texto: pulse el botón <strong>Compartir</strong> y elija <strong>"Agregar a Inicio"</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-lg border-l-4 border-green-500 shadow-sm flex gap-3">
+                <div class="text-2xl text-green-600"><i class="fa-brands fa-android"></i></div>
+                <div>
+                    <h4 class="font-bold text-gray-900 text-sm mb-1">Android</h4>
+                    <p class="text-sm text-gray-600 m-0 leading-snug">
+                        Aparecerá el botón color vino <strong>"Instalar"</strong>. Presiónelo para descargar la aplicación.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PÁGINA 3: INICIO DE SESIÓN -->
+<div class="slide-page page-break">
+    <div class="phone-mockup">
+        <div class="phone-content flex flex-col justify-center">
+            <div class="text-center mb-8">
+                <!-- LOGO REAL -->
+                <img src="./icons/logo.png" class="h-20 mx-auto mb-2 object-contain" onerror="this.src='https://via.placeholder.com/80?text=Logo'">
+                <h1 class="text-2xl font-bold text-vino">Ravens Access</h1>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Usuario</label>
+                    <input type="text" value="TorreA-101" class="w-full border border-gray-300 p-3 rounded bg-gray-50 text-gray-700" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Contraseña</label>
+                    <div class="relative">
+                        <input type="password" value="12345" class="w-full border border-gray-300 p-3 rounded bg-gray-50 text-gray-700" readonly>
+                        <div class="absolute right-3 top-3 text-gray-400">
+                            <i class="fa-solid fa-eye text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <button class="w-full py-3 rounded text-white text-lg font-semibold shadow-md mt-2" style="background-color: var(--color-verde);">Entrar</button>
+            </div>
+        </div>
+    </div>
+    <div class="text-content">
+        <span class="step-tag">Paso 2</span>
+        <h2>Ingrese sus datos</h2>
+        <p>Para acceder, introduzca el <strong>Usuario</strong> y la <strong>Contraseña</strong> proporcionados.</p>
+        <ul class="formal-list">
+            <li>
+                <i class="fa-solid fa-eye"></i>
+                <div>
+                    <strong>Verificar contraseña:</strong><br>
+                    Puede pulsar el ícono del "Ojo" para visualizar los caracteres y asegurarse de que están escritos correctamente.
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- PÁGINA 4: OPCIÓN RECORDARME -->
+<div class="slide-page page-break">
+    <div class="phone-mockup">
+        <div class="phone-content flex flex-col justify-center">
+            <div class="opacity-40 pointer-events-none mb-4">
+                <input type="text" value="Usuario..." class="w-full border p-2 mb-2 rounded">
+                <input type="password" value="Clave..." class="w-full border p-2 mb-2 rounded">
+            </div>
+            
+            <div class="flex items-center bg-white p-5 rounded-lg border-2 border-vino shadow-lg transform scale-105">
+                <input type="checkbox" checked class="h-6 w-6 text-green-600 rounded border-gray-300">
+                <label class="ml-3 block text-lg font-semibold text-gray-800">Recordarme</label>
+            </div>
+
+            <button class="w-full py-3 rounded text-white text-lg font-semibold mt-6 opacity-40" style="background-color: var(--color-verde);">Entrar</button>
+        </div>
+    </div>
+
+    <div class="text-content">
+        <span class="step-tag">Paso 3</span>
+        <h2>Guardar sesión</h2>
+        <p>Al marcar la casilla <strong>"Recordarme"</strong>, la aplicación guardará sus datos de forma segura en este dispositivo.</p>
+        
+        <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow-sm mt-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-2"><i class="fa-solid fa-check-circle text-green-600 mr-2"></i>Beneficio</h3>
+            <p class="text-base text-gray-600 m-0 leading-relaxed">
+                Esto le permitirá ingresar directamente al menú principal en futuras ocasiones, sin necesidad de escribir su usuario y contraseña cada vez que abra la aplicación.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- PÁGINA 5: MENÚ PRINCIPAL -->
+<div class="slide-page page-break">
+    <div class="phone-mockup">
+        <header class="header-app">
+            <img src="./icons/logo.png" alt="Logo">
+            <span>Menú Principal</span>
+        </header>
+        <div class="phone-content">
+            <p class="text-center text-sm text-gray-500 mb-6 mt-2">Seleccione una opción:</p>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center gap-2 border border-gray-100"><i class="fa-solid fa-user text-3xl text-blue-600"></i><span class="font-medium text-gray-700">Residente</span></div>
+                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center gap-2 border border-gray-100"><i class="fa-solid fa-person-walking-luggage text-3xl text-orange-500"></i><span class="font-medium text-gray-700">Visita</span></div>
+                <div class="bg-white p-4 rounded-lg shadow-md flex flex-col items-center gap-2 border-2 border-vino relative"><div class="absolute -top-2 -right-2 bg-vino text-white text-xs px-2 py-1 rounded-full">Ejemplo</div><i class="fa-solid fa-broom text-3xl text-purple-600"></i><span class="font-bold text-vino">Personal</span></div>
+                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center gap-2 border border-gray-100"><i class="fa-solid fa-truck text-3xl text-green-600"></i><span class="font-medium text-gray-700">Proveedor</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="text-content">
+        <span class="step-tag">Paso 4</span>
+        <h2>Menú Principal</h2>
+        <p>Seleccione la categoría que desea registrar.</p>
+        <ul class="formal-list">
+            <li>
+                <i class="fa-solid fa-list-check"></i>
+                <div>
+                    <strong>Selección simple:</strong><br>
+                    Pulse sobre el ícono correspondiente (ej. Visita Familiar, Proveedor, Personal de Servicio).
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- PÁGINA 6: LLENADO DE FORMULARIO -->
+<div class="slide-page page-break">
+    <div class="phone-mockup">
+        <header class="header-app">
+            <img src="./icons/logo.png" alt="Logo">
+            <span>Registro Personal</span>
+        </header>
+        <div class="phone-content space-y-4">
+            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Nombre Completo</label><input type="text" class="w-full p-2 border border-gray-300 rounded focus:border-green-500 outline-none"></div>
+            <div class="bg-gray-50 p-3 rounded border border-gray-200"><label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Personal</label><select class="w-full p-2 border border-gray-300 rounded bg-white"><option>De Planta</option><option selected>Eventual</option></select><div class="mt-3 pt-3 border-t border-gray-200"><label class="block text-xs font-semibold text-gray-500 mb-1">Fecha de Ingreso</label><div class="flex items-center gap-2 bg-white p-2 border rounded text-gray-600 text-sm"><i class="fa-regular fa-calendar"></i> 25/10/2023</div></div></div>
+            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Evidencia Fotográfica</label><div class="flex items-center gap-2"><button class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-medium text-sm"><i class="fa-solid fa-camera mr-1"></i> Cámara</button><span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200">✓ Lista</span></div></div>
+            <button class="w-full py-3 rounded text-white font-bold shadow-md mt-2" style="background-color: var(--color-verde);">Guardar Registro</button>
+        </div>
+    </div>
+    <div class="text-content">
+        <span class="step-tag">Paso 5</span>
+        <h2>Llenar Registro</h2>
+        <p>Complete los campos solicitados.</p>
+        <ul class="formal-list">
+            <li>
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <div><strong>Formulario Inteligente:</strong><br>Si es necesario (ej. personal eventual), aparecerán casillas adicionales para las fechas automáticamente.</div>
+            </li>
+            <li>
+                <i class="fa-solid fa-compress"></i>
+                <div><strong>Fotografías:</strong><br>Al tomar una foto, el sistema la prepara para que se envíe rápidamente sin consumir muchos datos.</div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- PÁGINA 7: CONFIRMACIÓN -->
+<div class="slide-page page-break">
+    <div class="phone-mockup">
+        <header class="header-app">
+            <img src="./icons/logo.png" alt="Logo">
+            <span>Ravens Access</span>
+        </header>
+        <div class="phone-content flex flex-col items-center justify-center text-center relative">
+            <div class="absolute inset-0 bg-white opacity-90 z-10"></div>
+            <div class="relative z-20 bg-white p-6 rounded-xl shadow-2xl w-full border border-gray-100">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-500"><i class="fa-solid fa-check text-4xl text-green-600"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Personal Registrado</h3>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 text-center"><p class="text-lg text-gray-800 m-0 font-medium">¡Guardado! Se envió el QR y los detalles por WhatsApp.</p></div>
+                <button class="w-full py-3 rounded text-white font-bold text-lg shadow hover:bg-green-700 transition" style="background-color: var(--color-verde);">Aceptar</button>
+            </div>
+        </div>
+    </div>
+    <div class="text-content">
+        <span class="step-tag">Paso 6</span>
+        <h2>Confirmación</h2>
+        <p>Al guardar, recibirá un mensaje de éxito en pantalla.</p>
+        <div class="bg-green-100 border-l-4 border-green-600 p-5 rounded-r-lg shadow-sm mb-6">
+            <div class="flex items-center gap-3 mb-2"><i class="fa-brands fa-whatsapp text-3xl text-green-700"></i><h3 class="text-xl font-bold text-green-800 m-0">Envío Automático</h3></div>
+            <p class="text-base text-green-900 m-0">El pase de acceso (QR) se ha enviado automáticamente a su <strong>WhatsApp</strong> para compartirlo fácilmente.</p>
+        </div>
+        <p class="text-base text-gray-500">Pulse <strong>"Aceptar"</strong> para finalizar.</p>
+    </div>
+</div>
+
+</body>
+</html>
