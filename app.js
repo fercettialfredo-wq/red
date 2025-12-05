@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     readyToSendPhoto = await compressImage(file);
                     if(statusSpan) {
-                        statusSpan.textContent = "✅ Foto lista y optimizada.";
+                        statusSpan.textContent = "✅ Foto lista.";
                         statusSpan.classList.add("text-green-600");
                     }
                 } catch (error) {
@@ -379,13 +379,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             switch (formId) {
                 case 'Proveedor':
-                    showConfirmationPopup('Guardado', 'Proveedor registrado correctamente.');
+                    showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
                     break;
                 case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el QR y los detalles por WhatsApp.');
+                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envio el acceso por WhatsApp.');
                     break;
                 default:
-                    showConfirmationPopup('Guardado', 'La información se registró correctamente.');
+                    showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
                     break;
             }
 
@@ -429,3 +429,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
