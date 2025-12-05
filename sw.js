@@ -47,7 +47,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Si hay internet, actualizamos el caché con la versión nueva
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
