@@ -59,7 +59,6 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Solo si NO hay internet, usa lo guardado
         return caches.match(event.request);
       })
   );
