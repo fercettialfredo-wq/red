@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const CONFIG = {
+        // Asegúrate de que esta URL sea la de tu PROXY (Function App), no la Logic App directa
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
 
@@ -48,11 +49,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            showScreen(SCREENS.MENU);
+            // Validación extra: Si el usuario guardado no tiene condominio, forzar logout
+            if (!currentUser.condominio || currentUser.condominio === 'No especificado') {
+                console.warn("Sesión inválida (sin condominio), forzando logout.");
+                doLogout();
+            } else {
+                showScreen(SCREENS.MENU);
+            }
         } else {
             showScreen(SCREENS.LOGIN);
         }
     };
+
+    const doLogout = () => {
+        currentUser = {};
+        sessionStorage.removeItem('currentUser');
+        localStorage.removeItem('currentUser');
+        if(passwordInput) passwordInput.value = '';
+        showScreen(SCREENS.LOGIN);
+    };
+
     checkSession();
 
     // --- LOGIN ---
@@ -78,11 +94,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', username, password })
                 });
+                
                 const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.message || 'Credenciales inválidas');
                 
-                currentUser = { username: username, condominio: data.condominio || (data.data && data.data.condominio) };
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Credenciales inválidas');
+                }
                 
+                // --- CORRECCIÓN APLICADA AQUÍ ---
+                // Captura 'condominioId' (Logic App) o 'condominio' (Proxy legacy) para asegurar que nunca esté vacío
+                currentUser = { 
+                    username: username, 
+                    condominio: data.condominioId || data.condominio || (data.data && data.data.condominioId) || (data.data && data.data.condominio)
+                };
+                
+                // Guardado de sesión
                 if (rememberMeCheckbox.checked) {
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     sessionStorage.removeItem('currentUser');
@@ -104,13 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
-            currentUser = {};
-            sessionStorage.removeItem('currentUser');
-            localStorage.removeItem('currentUser');
-            passwordInput.value = '';
-            showScreen(SCREENS.LOGIN);
-        });
+        logoutButton.addEventListener('click', doLogout);
     }
 
     if (menuItems.length > 0) {
@@ -123,24 +143,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
     
-    // Si NO está instalada...
     if (!(window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode)) {
-        
-        // Caso Android / PC (Evento automático)
+        // Caso Android / PC
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); // Evitar barra fea de Chrome
+            e.preventDefault();
             deferredPrompt = e;
             if(installPopup) installPopup.style.display = 'block';
         });
 
-        // Caso iOS (Manual con instrucciones)
+        // Caso iOS
         if (isIos && installPopup) {
             setTimeout(() => {
                 installPopup.style.display = 'block';
                 installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
                 if(btnInstall) btnInstall.style.display = 'none'; 
                 if(btnCloseInstall) btnCloseInstall.textContent = "Entendido";
-            }, 2000); // Esperar 2 seg para no ser molesto
+            }, 2000);
         }
     }
 
@@ -429,4 +447,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
