@@ -438,6 +438,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'Personal de servicio':
                     showConfirmationPopup('Personal Registrado', '¡Guardado! Se envio el acceso por WhatsApp.');
                     break;
+                case 'Eliminar QR':
+                    showConfirmationPopup('Eliminado', 'El acceso se eliminó correctamente.');
+                    break;
                 default:
                     showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
                     break;
