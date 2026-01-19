@@ -181,8 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FORMS CONFIG ---
-    // NOTA: Se eliminaron Torre y Departamento de todos los formularios.
-    // Se modificó Evento, Incidencias y Eliminar QR según instrucciones.
     const formDefinitions = {
         'Residente': [ 
             { label: 'Nombre', type: 'text' }, 
@@ -218,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'ID de eliminación', type: 'text', field: 'Id_Eliminacion' } 
         ],
         'Incidencias': [ 
-            { label: 'Nombre', type: 'text' }, 
+            // CAMBIO REALIZADO: Se eliminó el campo 'Nombre', solo queda Nivel de Urgencia e Incidencia
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
             { label: 'Incidencia', type: 'textarea' } 
         ]
