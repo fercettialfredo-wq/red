@@ -181,22 +181,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FORMS CONFIG ---
+    // NOTA: Se eliminaron Torre y Departamento de todos los formularios.
+    // Se modificó Evento, Incidencias y Eliminar QR según instrucciones.
     const formDefinitions = {
-        'Residente': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' },{ label: 'Relación', type: 'text' } ],
-        'Visita': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Motivo', type: 'text' } ],
-        'Evento': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } ],
-        'Proveedor': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Asunto', type: 'text' }, { label: 'Empresa', type: 'text' } ],
+        'Residente': [ 
+            { label: 'Nombre', type: 'text' }, 
+            { label: 'Relación', type: 'text' } 
+        ],
+        'Visita': [ 
+            { label: 'Nombre', type: 'text' }, 
+            { label: 'Motivo', type: 'text' } 
+        ],
+        'Evento': [ 
+            { label: 'Nombre del evento o del residente', type: 'text', field: 'Nombre' }, 
+            { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } 
+        ],
+        'Proveedor': [ 
+            { label: 'Nombre', type: 'text' }, 
+            { label: 'Asunto', type: 'text' }, 
+            { label: 'Empresa', type: 'text' } 
+        ],
         'Personal de servicio': [
-            { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Cargo', type: 'text' },
-            { label: 'Foto', type: 'file', field: 'Foto' }, { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' }, { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
+            { label: 'Nombre', type: 'text' }, 
+            { label: 'Cargo', type: 'text' },
+            { label: 'Foto', type: 'file', field: 'Foto' }, 
+            { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' }, 
+            { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
             { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
             { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
             { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con' },
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
-            { label: 'Fecha Inicio', type: 'date', isConditional: true }, { label: 'Fecha Fin', type: 'date', isConditional: true }
+            { label: 'Fecha Inicio', type: 'date', isConditional: true }, 
+            { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
-        'Eliminar QR': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Relación', type: 'text' }, { label: 'Nombre QR', type: 'text', field: 'Nombre_QR' } ],
-        'Incidencias': [ { label: 'Nombre', type: 'text' }, { label: 'Torre', type: 'text' }, { label: 'Departamento', type: 'text' }, { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, { label: 'Reportar a', type: 'select', options: ['Administración', 'Ravens Access'] }, { label: 'Incidencia', type: 'textarea' } ]
+        'Eliminar QR': [ 
+            { label: 'ID de eliminación', type: 'text', field: 'Id_Eliminacion' } 
+        ],
+        'Incidencias': [ 
+            { label: 'Nombre', type: 'text' }, 
+            { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
+            { label: 'Incidencia', type: 'textarea' } 
+        ]
     };
 
     function generateFormContent(formPage) {
@@ -248,6 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setupConditionalFields(formPage);
         setupFileInputListeners(formPage);
+
+        // --- LÓGICA ESPECÍFICA PARA EL CAMPO N QR EN EVENTOS ---
+        if (formId === 'Evento') {
+            // Buscamos el select de Nqr basándonos en el ID generado o data-field
+            const nQrSelect = formPage.querySelector('select[data-field="Nqr"]');
+            if (nQrSelect) {
+                nQrSelect.addEventListener('change', function() {
+                    const cantidad = this.value;
+                    // Ventana emergente solicitada
+                    alert(`⚠️ ATENCIÓN: El número que seleccionó (${cantidad}) será la cantidad de QRs que se enviarán. Asegúrese de generar esto SOLO si realmente va a tener un evento.`);
+                });
+            }
+        }
     }
     
     function setupConditionalFields(formPage) {
