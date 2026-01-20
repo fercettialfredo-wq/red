@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Cargo: ${item.Cargo}</p>`;
                 } else if (tipo === 'Proveedor' && item.Empresa) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Empresa: ${item.Empresa}</p>`;
-                } else if (tipo === 'QR Residente') {
+                } else if (tipo === 'Residente') {
                     const rel = item.Relacion || item.Relaci_x00f3_n;
                     if (rel) detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Relación: ${rel}</p>`;
                 }
@@ -651,3 +651,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
