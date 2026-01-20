@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const CONFIG = {
-        // Asegúrate de que esta URL sea la de tu PROXY (Function App), no la Logic App directa
+        // Asegúrate de que esta URL sea la de tu PROXY
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
 
@@ -36,8 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
             if (activeScreen.classList.contains('form-page')) {
-                readyToSendPhoto = null;
-                generateFormContent(activeScreen);
+                // Obtenemos el ID del formulario actual
+                const formId = activeScreen.dataset.formId;
+
+                // --- MODIFICACIÓN: DETECTAR EL MÓDULO DE ELIMINAR/ACCESOS ---
+                // Si el ID es "Eliminar QR" o "Accesos Activos", cargamos la libreta en lugar del formulario
+                if (formId === 'Eliminar QR' || formId === 'Accesos Activos') {
+                    renderAccesosActivos(activeScreen);
+                } else {
+                    readyToSendPhoto = null;
+                    generateFormContent(activeScreen);
+                }
             }
             activeScreen.classList.add('active');
             window.scrollTo(0, 0);
@@ -49,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            // Validación extra: Si el usuario guardado no tiene condominio, forzar logout
             if (!currentUser.condominio || currentUser.condominio === 'No especificado') {
                 console.warn("Sesión inválida (sin condominio), forzando logout.");
                 doLogout();
@@ -101,14 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(data.message || 'Credenciales inválidas');
                 }
                 
-                // --- CORRECCIÓN APLICADA AQUÍ ---
-                // Captura 'condominioId' (Logic App) o 'condominio' (Proxy legacy) para asegurar que nunca esté vacío
                 currentUser = { 
                     username: username, 
                     condominio: data.condominioId || data.condominio || (data.data && data.data.condominioId) || (data.data && data.data.condominio)
                 };
                 
-                // Guardado de sesión
                 if (rememberMeCheckbox.checked) {
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     sessionStorage.removeItem('currentUser');
@@ -139,19 +144,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- PWA LOGIC AUTOMÁTICA ---
+    // --- PWA LOGIC ---
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
     
     if (!(window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode)) {
-        // Caso Android / PC
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             if(installPopup) installPopup.style.display = 'block';
         });
 
-        // Caso iOS
         if (isIos && installPopup) {
             setTimeout(() => {
                 installPopup.style.display = 'block';
@@ -181,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FORMS CONFIG ---
+    // NOTA: Se eliminó 'Eliminar QR' de aquí porque ahora se maneja con renderAccesosActivos
     const formDefinitions = {
         'Residente': [ 
             { label: 'Nombre', type: 'text' }, 
@@ -212,20 +216,156 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Fecha Inicio', type: 'date', isConditional: true }, 
             { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
-        'Eliminar QR': [ 
-            { label: 'ID de eliminación', type: 'text', field: 'Id_Eliminacion' } 
-        ],
         'Incidencias': [ 
-            // CAMBIO REALIZADO: Se eliminó el campo 'Nombre', solo queda Nivel de Urgencia e Incidencia
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
             { label: 'Incidencia', type: 'textarea' } 
         ]
     };
 
+    // --- NUEVA LÓGICA: ACCESOS ACTIVOS (LIBRETA) ---
+    async function renderAccesosActivos(container) {
+        // Estructura Base de la Pantalla
+        container.innerHTML = `
+            <header class="header-app">
+                <div class="header-logo">
+                    <img src="./icons/logo.png" alt="Ravens Logo">
+                    <span class="header-logo-text">RAVENS ACCESS</span>
+                </div>
+            </header>
+            <div class="form-title-section" style="justify-content: space-between;">
+                <h2 class="form-title">Accesos Activos</h2>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="fas fa-sync-alt fa-lg cursor-pointer" id="btn-refresh-access" style="color: #4ade80;"></i>
+                    <div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div>
+                </div>
+            </div>
+            <div class="form-container" style="background-color: #f8fafc;">
+                <div id="access-list-container">
+                    <div class="loader"></div>
+                    <p style="text-align:center; color:#666;">Cargando accesos...</p>
+                </div>
+            </div>`;
+
+        // Eventos de navegación
+        container.querySelector('.home-icon').addEventListener('click', () => showScreen(SCREENS.MENU));
+        container.querySelector('#btn-refresh-access').addEventListener('click', () => loadAccessList());
+
+        // Carga inicial de datos
+        await loadAccessList();
+    }
+
+    async function loadAccessList() {
+        const listContainer = document.getElementById('access-list-container');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = '<div class="loader"></div>';
+
+        try {
+            // Petición al Proxy: Acción 'get_active_accesses' (o similar según tu backend)
+            // Asumimos que obtienes una lista de QRs vigentes
+            const response = await fetch(CONFIG.API_PROXY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'get_active_accesses', // Asegúrate de que tu Proxy/Logic App maneje esto o usa 'get_history' y filtra
+                    condominio: currentUser.condominio 
+                })
+            });
+
+            const result = await response.json();
+            
+            // Si falla o no hay data
+            if (!result.success || !result.data || result.data.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-check fa-3x" style="color:#d1d5db; margin-bottom:15px;"></i>
+                        <p>No hay accesos activos o códigos QR vigentes en este momento.</p>
+                    </div>`;
+                return;
+            }
+
+            // Renderizar Tarjetas
+            let html = '';
+            result.data.forEach(item => {
+                // Ajusta estos campos según lo que devuelva tu API (ej. item.Nombre, item.Tipo, item.ID)
+                const nombre = item.Nombre || item.Visitante || "Sin nombre";
+                const tipo = item.Tipo || "Acceso";
+                const fecha = item.Fecha || item.Created || "";
+                // Formatear fecha simple
+                const dateStr = fecha ? new Date(fecha).toLocaleDateString() : "";
+
+                html += `
+                    <div class="access-card">
+                        <div class="access-info">
+                            <h4>${nombre}</h4>
+                            <p>${tipo} • ${dateStr}</p>
+                            ${item.Codigo ? `<p style="font-size:0.8rem; color:#9ca3af;">Code: ${item.Codigo}</p>` : ''}
+                        </div>
+                        <div class="access-actions">
+                            <button class="btn-delete-access" onclick="window.confirmDeleteAccess('${item.ID}', '${nombre}')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+
+        } catch (error) {
+            console.error(error);
+            listContainer.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Error al cargar datos. Reintenta.</p></div>`;
+        }
+    }
+
+    // Función Global para poder llamarla desde el onclick del HTML inyectado
+    window.confirmDeleteAccess = (id, nombre) => {
+        if(confirm(`¿Estás seguro que deseas eliminar el acceso de: ${nombre}? \nEl código QR dejará de funcionar.`)) {
+            deleteAccess(id);
+        }
+    };
+
+    async function deleteAccess(id) {
+        // Mostrar estado de carga visual simple
+        const listContainer = document.getElementById('access-list-container');
+        
+        try {
+            const response = await fetch(CONFIG.API_PROXY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'delete_access', // Acción para eliminar
+                    id_eliminacion: id,
+                    condominio: currentUser.condominio,
+                    usuario: currentUser.username
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert("Acceso eliminado correctamente.");
+                loadAccessList(); // Recargar lista
+            } else {
+                alert("Error al eliminar: " + (result.message || "Desconocido"));
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión al intentar eliminar.");
+        }
+    }
+
+    // --- FIN NUEVA LÓGICA ---
+
     function generateFormContent(formPage) {
         formPage.innerHTML = '';  
         const formId = formPage.dataset.formId;
         const fields = formDefinitions[formId];
+        
+        // Si no hay definición (ej. caso raro), salir
+        if (!fields) return;
+
         let fieldsHtml = '';
 
         fields.forEach(field => {
@@ -255,15 +395,15 @@ document.addEventListener('DOMContentLoaded', () => {
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}</label>${inputHtml}</div>`;
         });
         
-        formPage.innerHTML = `
-            <header class="header-app"><div class="header-logo"><img src="./icons/logo.png" alt="Ravens Logo"><span class="header-logo-text">RAVENS ACCESS</span></div></header>
-            <div class="form-title-section"><h2 class="form-title">${formId}</h2><div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div></div>
-            <div class="form-container">
-                <form class="space-y-4" novalidate>
-                    ${fieldsHtml}
-                    <div class="mt-8"><button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">Guardar</button></div>
-                    <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p>
-                </form>
+        formPage.innerHTML = `<br>
+            <header class="header-app"><div class="header-logo"><img src="./icons/logo.png" alt="Ravens Logo"><span class="header-logo-text">RAVENS ACCESS</span></div></header><br>
+            <div class="form-title-section"><h2 class="form-title">${formId}</h2><div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div></div><br>
+            <div class="form-container"><br>
+                <form class="space-y-4" novalidate><br>
+                    ${fieldsHtml}<br>
+                    <div class="mt-8"><button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">Guardar</button></div><br>
+                    <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p><br>
+                </form><br>
             </div>`;
         
         formPage.querySelector('.home-icon').addEventListener('click', () => showScreen(SCREENS.MENU));
@@ -272,14 +412,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setupConditionalFields(formPage);
         setupFileInputListeners(formPage);
 
-        // --- LÓGICA ESPECÍFICA PARA EL CAMPO N QR EN EVENTOS ---
         if (formId === 'Evento') {
-            // Buscamos el select de Nqr basándonos en el ID generado o data-field
             const nQrSelect = formPage.querySelector('select[data-field="Nqr"]');
             if (nQrSelect) {
                 nQrSelect.addEventListener('change', function() {
                     const cantidad = this.value;
-                    // Ventana emergente solicitada
                     alert(`⚠️ ATENCIÓN: El número que seleccionó (${cantidad}) será la cantidad de QRs que se enviarán. Asegúrese de generar esto SOLO si realmente va a tener un evento.`);
                 });
             }
@@ -437,9 +574,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'Personal de servicio':
                     showConfirmationPopup('Personal Registrado', '¡Guardado! Se envio el acceso por WhatsApp.');
-                    break;
-                case 'Eliminar QR':
-                    showConfirmationPopup('Eliminado', 'El acceso se eliminó correctamente.');
                     break;
                 default:
                     showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
