@@ -283,11 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 1. ORDENAR: Del más nuevo al más viejo
-            // Se asume que la fecha viene en 'Created' o 'Fecha'
             result.data.sort((a, b) => {
                 const dateA = new Date(a.Created || a.Fecha);
                 const dateB = new Date(b.Created || b.Fecha);
-                return dateB - dateA; // Descendente (Newest first)
+                return dateB - dateA;
             });
 
             // Renderizar Tarjetas
@@ -300,17 +299,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 2. DETALLES EXTRA SEGÚN TIPO
                 let detalleExtra = "";
-                // Nota: Asegúrate de que la Logic App esté enviando estos campos (Motivo, Cargo, Empresa, Relacion)
                 if (tipo === 'Visita' && item.Motivo) {
-                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Motivo: ${item.Motivo}</p>`;
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Motivo: ${item.Motivo}</p>`;
                 } else if (tipo === 'Personal' && item.Cargo) {
-                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Cargo: ${item.Cargo}</p>`;
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Cargo: ${item.Cargo}</p>`;
                 } else if (tipo === 'Proveedor' && item.Empresa) {
-                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Empresa: ${item.Empresa}</p>`;
-                } else if (tipo === 'QR Residente' && (item.Relacion || item.Relaci_x00f3_n)) {
-                    // A veces SharePoint codifica ó como _x00f3_
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Empresa: ${item.Empresa}</p>`;
+                } else if (tipo === 'QR Residente') {
                     const rel = item.Relacion || item.Relaci_x00f3_n;
-                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Relación: ${rel}</p>`;
+                    if (rel) detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Relación: ${rel}</p>`;
                 }
 
                 html += `
@@ -363,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // 3. MENSAJE CON BOTÓN VERDE (Popup)
+                // 3. MENSAJE CON BOTÓN VERDE
                 showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
                 loadAccessList(); // Recargar lista
             } else {
@@ -378,6 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FIN NUEVA LÓGICA ---
 
+    // ==========================================
+    // CORRECCIÓN VISUAL DE FORMULARIOS ("ENCUADRE")
+    // ==========================================
     function generateFormContent(formPage) {
         formPage.innerHTML = '';  
         const formId = formPage.dataset.formId;
@@ -414,15 +414,27 @@ document.addEventListener('DOMContentLoaded', () => {
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}</label>${inputHtml}</div>`;
         });
         
-        formPage.innerHTML = `<br>
-            <header class="header-app"><div class="header-logo"><img src="./icons/logo.png" alt="Ravens Logo"><span class="header-logo-text">RAVENS ACCESS</span></div></header><br>
-            <div class="form-title-section"><h2 class="form-title">${formId}</h2><div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div></div><br>
-            <div class="form-container"><br>
-                <form class="space-y-4" novalidate><br>
-                    ${fieldsHtml}<br>
-                    <div class="mt-8"><button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">Guardar</button></div><br>
-                    <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p><br>
-                </form><br>
+        // AQUÍ ESTABA EL PROBLEMA DEL "DESCUADRE".
+        // Se ha limpiado la estructura HTML para que coincida con renderAccesosActivos (sin <br> aleatorios).
+        formPage.innerHTML = `
+            <header class="header-app">
+                <div class="header-logo">
+                    <img src="./icons/logo.png" alt="Ravens Logo">
+                    <span class="header-logo-text">RAVENS ACCESS</span>
+                </div>
+            </header>
+            <div class="form-title-section" style="justify-content: space-between;">
+                <h2 class="form-title">${formId}</h2>
+                <div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div>
+            </div>
+            <div class="form-container">
+                <form class="space-y-4" novalidate>
+                    ${fieldsHtml}
+                    <div class="mt-8">
+                        <button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">Guardar</button>
+                    </div>
+                    <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p>
+                </form>
             </div>`;
         
         formPage.querySelector('.home-icon').addEventListener('click', () => showScreen(SCREENS.MENU));
