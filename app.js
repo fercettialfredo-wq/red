@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ 
                     action: 'get_active_accesses', 
                     condominio: currentUser.condominio,
-                    registradoPor: currentUser.username // <--- AQUÍ ESTABA EL ERROR, AHORA YA SE ENVÍA EL USUARIO
+                    registradoPor: currentUser.username // ENVIAMOS EL USUARIO CORRECTAMENTE
                 })
             });
 
@@ -294,15 +294,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Formatear fecha simple
                 const dateStr = fecha ? new Date(fecha).toLocaleDateString() : "";
 
+                // MODIFICADO: Se quitó la línea que mostraba el "Code: ..."
+                // MODIFICADO: Se pasa 'tipo' a la función de eliminar
                 html += `
                     <div class="access-card">
                         <div class="access-info">
                             <h4>${nombre}</h4>
                             <p>${tipo} • ${dateStr}</p>
-                            ${item.Codigo ? `<p style="font-size:0.8rem; color:#9ca3af;">Code: ${item.Codigo}</p>` : ''}
                         </div>
                         <div class="access-actions">
-                            <button class="btn-delete-access" onclick="window.confirmDeleteAccess('${item.ID}', '${nombre}')">
+                            <button class="btn-delete-access" onclick="window.confirmDeleteAccess('${item.ID}', '${nombre}', '${tipo}')">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
@@ -319,13 +320,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Función Global para poder llamarla desde el onclick del HTML inyectado
-    window.confirmDeleteAccess = (id, nombre) => {
+    window.confirmDeleteAccess = (id, nombre, tipo) => {
         if(confirm(`¿Estás seguro que deseas eliminar el acceso de: ${nombre}? \nEl código QR dejará de funcionar.`)) {
-            deleteAccess(id);
+            deleteAccess(id, tipo);
         }
     };
 
-    async function deleteAccess(id) {
+    async function deleteAccess(id, tipo) {
         // Mostrar estado de carga visual simple
         const listContainer = document.getElementById('access-list-container');
         
@@ -336,8 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ 
                     action: 'delete_access', // Acción para eliminar
                     id_eliminacion: id,
+                    tipo: tipo, // Enviamos el tipo para saber en qué lista borrar
                     condominio: currentUser.condominio,
-                    registradoPor: currentUser.username // <--- AQUÍ TAMBIÉN SE ENVÍA EL USUARIO
+                    registradoPor: currentUser.username // Enviamos usuario para seguridad/log
                 })
             });
 
