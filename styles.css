@@ -176,13 +176,11 @@ body {
     cursor: not-allowed;
 }
 
-/* AQUÍ ESTÁ EL ARREGLO VISUAL PARA LOS INPUTS */
 input, select, textarea { 
     border-color: #cbd5e1 !important; 
     color: #1f2937 !important;
-    background-color: #ffffff !important; /* Fuerza fondo blanco */
+    background-color: #ffffff !important; 
 }
-
 input:focus, select:focus, textarea:focus { 
     --tw-ring-color: #5a1a2e !important; 
     border-color: #5a1a2e !important; 
@@ -194,15 +192,78 @@ input[type="password"] {
     width: 64px;  
     height: 64px;  
 }
-
 input[type="password"]::-webkit-password-reveal-button {
     display: none;
     -webkit-appearance: none;
 }
-
 .conditional-field { 
     display: none; 
 }
 .conditional-field.visible {
     display: block;
 }
+
+/* --- ESTILOS DE ACCESOS ACTIVOS (NUEVO) --- */
+.access-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+}
+.access-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.access-info h4 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+.access-info p {
+    margin: 4px 0 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+.access-actions {
+    margin-left: 10px;
+}
+.btn-delete-access {
+    background-color: #fee2e2;
+    color: #ef4444;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-delete-access:hover {
+    background-color: #fecaca;
+    color: #dc2626;
+}
+.empty-state {
+    text-align: center;
+    color: #9ca3af;
+    margin-top: 2rem;
+    padding: 2rem;
+}
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #5a1a2e;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
