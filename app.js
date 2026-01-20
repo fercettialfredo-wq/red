@@ -261,14 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '<div class="loader"></div>';
 
         try {
-            // Petición al Proxy: Acción 'get_active_accesses' (o similar según tu backend)
-            // Asumimos que obtienes una lista de QRs vigentes
+            // Petición al Proxy: Acción 'get_active_accesses'
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    action: 'get_active_accesses', // Asegúrate de que tu Proxy/Logic App maneje esto o usa 'get_history' y filtra
-                    condominio: currentUser.condominio 
+                    action: 'get_active_accesses', 
+                    condominio: currentUser.condominio,
+                    registradoPor: currentUser.username // <--- AQUÍ ESTABA EL ERROR, AHORA YA SE ENVÍA EL USUARIO
                 })
             });
 
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 listContainer.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-clipboard-check fa-3x" style="color:#d1d5db; margin-bottom:15px;"></i>
-                        <p>No hay accesos activos o códigos QR vigentes en este momento.</p>
+                        <p>No tienes accesos activos o QRs vigentes registrados.</p>
                     </div>`;
                 return;
             }
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
-            listContainer.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Error al cargar datos. Reintenta.</p></div>`;
+            listContainer.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Error al conectar con el servidor.</p></div>`;
         }
     }
 
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     action: 'delete_access', // Acción para eliminar
                     id_eliminacion: id,
                     condominio: currentUser.condominio,
-                    usuario: currentUser.username
+                    registradoPor: currentUser.username // <--- AQUÍ TAMBIÉN SE ENVÍA EL USUARIO
                 })
             });
 
