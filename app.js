@@ -39,8 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Obtenemos el ID del formulario actual
                 const formId = activeScreen.dataset.formId;
 
-                // --- MODIFICACIÓN: DETECTAR EL MÓDULO DE ELIMINAR/ACCESOS ---
-                // Si el ID es "Eliminar QR" o "Accesos Activos", cargamos la libreta en lugar del formulario
+                // --- DETECTAR EL MÓDULO DE ELIMINAR/ACCESOS ---
                 if (formId === 'Eliminar QR' || formId === 'Accesos Activos') {
                     renderAccesosActivos(activeScreen);
                 } else {
@@ -184,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FORMS CONFIG ---
-    // NOTA: Se eliminó 'Eliminar QR' de aquí porque ahora se maneja con renderAccesosActivos
     const formDefinitions = {
         'Residente': [ 
             { label: 'Nombre', type: 'text' }, 
@@ -261,14 +259,14 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '<div class="loader"></div>';
 
         try {
-            // Petición al Proxy: Acción 'get_active_accesses'
+            // Petición al Proxy
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'get_active_accesses', 
                     condominio: currentUser.condominio,
-                    registradoPor: currentUser.username // ENVIAMOS EL USUARIO CORRECTAMENTE
+                    registradoPor: currentUser.username 
                 })
             });
 
@@ -284,23 +282,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // 1. ORDENAR: Del más nuevo al más viejo
+            // Se asume que la fecha viene en 'Created' o 'Fecha'
+            result.data.sort((a, b) => {
+                const dateA = new Date(a.Created || a.Fecha);
+                const dateB = new Date(b.Created || b.Fecha);
+                return dateB - dateA; // Descendente (Newest first)
+            });
+
             // Renderizar Tarjetas
             let html = '';
             result.data.forEach(item => {
-                // Ajusta estos campos según lo que devuelva tu API (ej. item.Nombre, item.Tipo, item.ID)
                 const nombre = item.Nombre || item.Visitante || "Sin nombre";
                 const tipo = item.Tipo || "Acceso";
                 const fecha = item.Fecha || item.Created || "";
-                // Formatear fecha simple
                 const dateStr = fecha ? new Date(fecha).toLocaleDateString() : "";
 
-                // MODIFICADO: Se quitó la línea que mostraba el "Code: ..."
-                // MODIFICADO: Se pasa 'tipo' a la función de eliminar
+                // 2. DETALLES EXTRA SEGÚN TIPO
+                let detalleExtra = "";
+                // Nota: Asegúrate de que la Logic App esté enviando estos campos (Motivo, Cargo, Empresa, Relacion)
+                if (tipo === 'Visita' && item.Motivo) {
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Motivo: ${item.Motivo}</p>`;
+                } else if (tipo === 'Personal' && item.Cargo) {
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Cargo: ${item.Cargo}</p>`;
+                } else if (tipo === 'Proveedor' && item.Empresa) {
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Empresa: ${item.Empresa}</p>`;
+                } else if (tipo === 'QR Residente' && (item.Relacion || item.Relaci_x00f3_n)) {
+                    // A veces SharePoint codifica ó como _x00f3_
+                    const rel = item.Relacion || item.Relaci_x00f3_n;
+                    detalleExtra = `<p style="font-size:0.85rem; color:#6b7280;">Relación: ${rel}</p>`;
+                }
+
                 html += `
                     <div class="access-card">
                         <div class="access-info">
                             <h4>${nombre}</h4>
                             <p>${tipo} • ${dateStr}</p>
+                            ${detalleExtra}
                         </div>
                         <div class="access-actions">
                             <button class="btn-delete-access" onclick="window.confirmDeleteAccess('${item.ID}', '${nombre}', '${tipo}')">
@@ -319,7 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Función Global para poder llamarla desde el onclick del HTML inyectado
     window.confirmDeleteAccess = (id, nombre, tipo) => {
         if(confirm(`¿Estás seguro que deseas eliminar el acceso de: ${nombre}? \nEl código QR dejará de funcionar.`)) {
             deleteAccess(id, tipo);
@@ -335,18 +352,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    action: 'delete_access', // Acción para eliminar
+                    action: 'delete_access',
                     id_eliminacion: id,
-                    tipo: tipo, // Enviamos el tipo para saber en qué lista borrar
+                    tipo: tipo,
                     condominio: currentUser.condominio,
-                    registradoPor: currentUser.username // Enviamos usuario para seguridad/log
+                    registradoPor: currentUser.username
                 })
             });
 
             const result = await response.json();
 
             if (result.success) {
-                alert("Acceso eliminado correctamente.");
+                // 3. MENSAJE CON BOTÓN VERDE (Popup)
+                showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
                 loadAccessList(); // Recargar lista
             } else {
                 alert("Error al eliminar: " + (result.message || "Desconocido"));
@@ -365,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const formId = formPage.dataset.formId;
         const fields = formDefinitions[formId];
         
-        // Si no hay definición (ej. caso raro), salir
         if (!fields) return;
 
         let fieldsHtml = '';
