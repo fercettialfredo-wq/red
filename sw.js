@@ -1,5 +1,5 @@
 // CAMBIO 1: Subimos la versión a 'v2' para obligar al navegador a borrar lo viejo
-const CACHE_NAME = 'ravens-access-v8';
+const CACHE_NAME = 'ravens-access-v9';
 
 const urlsToCache = [
   './',
