@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 // 3. MENSAJE CON BOTÓN VERDE
                 showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
-                loadAccessList(); // Recargar lista
+                // loadAccessList(); // SE ELIMINÓ PARA NO RECARGAR Y QUE EL BOTÓN OK DEL POPUP REDIRIJA
             } else {
                 alert("Error al eliminar: " + (result.message || "Desconocido"));
             }
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         data[dataField] = "";
                         if(isVisible) allFieldsValid = false;
-                    }   
+                    }    
                 } else {
                     const val = element.value.trim();
                     data[dataField] = val;
@@ -651,4 +651,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
