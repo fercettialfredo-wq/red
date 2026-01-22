@@ -193,8 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Motivo', type: 'text' } 
         ],
         'Evento': [ 
-            { label: 'Nombre del evento o del residente', type: 'text', field: 'Nombre' }, 
-            { label: 'N QR', type: 'select', options: ['1', '5', '10'], field: 'Nqr' } 
+            // MODIFICADO: Solo el selector con las cantidades exactas y el ID específico para detectarlo
+            { label: 'Número de invitaciones', type: 'select', options: ['1', '2', '3', '5', '10'], field: 'Cantidad', id: 'evento-qty-select' }
+            // Los campos de texto se generan dinámicamente en generateFormContent
         ],
         'Proveedor': [ 
             { label: 'Nombre', type: 'text' }, 
@@ -414,8 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}</label>${inputHtml}</div>`;
         });
         
-        // AQUÍ ESTABA EL PROBLEMA DEL "DESCUADRE".
-        // Se ha limpiado la estructura HTML para que coincida con renderAccesosActivos (sin <br> aleatorios).
         formPage.innerHTML = `
             <header class="header-app">
                 <div class="header-logo">
@@ -430,6 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="form-container">
                 <form class="space-y-4" novalidate>
                     ${fieldsHtml}
+                    <div id="dynamic-fields-container"></div>
+
                     <div class="mt-8">
                         <button type="submit" class="btn-save w-full py-3 rounded text-white font-bold shadow-lg" style="background-color: #16a34a !important;">Guardar</button>
                     </div>
@@ -443,13 +444,40 @@ document.addEventListener('DOMContentLoaded', () => {
         setupConditionalFields(formPage);
         setupFileInputListeners(formPage);
 
+        // --- LÓGICA ESPECIAL PARA EVENTO (CAMPOS DINÁMICOS) ---
         if (formId === 'Evento') {
-            const nQrSelect = formPage.querySelector('select[data-field="Nqr"]');
-            if (nQrSelect) {
-                nQrSelect.addEventListener('change', function() {
-                    const cantidad = this.value;
-                    alert(`⚠️ ATENCIÓN: El número que seleccionó (${cantidad}) será la cantidad de QRs que se enviarán. Asegúrese de generar esto SOLO si realmente va a tener un evento.`);
-                });
+            const qtySelect = formPage.querySelector('#evento-qty-select');
+            const dynamicContainer = formPage.querySelector('#dynamic-fields-container');
+
+            if (qtySelect && dynamicContainer) {
+                // Función para pintar los inputs
+                const renderGuestInputs = () => {
+                    const cantidad = parseInt(qtySelect.value) || 1;
+                    dynamicContainer.innerHTML = ''; // Limpiar anteriores
+                    
+                    // Aviso de advertencia
+                    const warning = document.createElement('div');
+                    warning.className = "p-3 mb-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 text-sm";
+                    warning.innerHTML = `<p class="font-bold">⚠️ Importante:</p><p>Se generarán ${cantidad} pases QR. Asegúrese de que es correcto.</p>`;
+                    dynamicContainer.appendChild(warning);
+
+                    // Generar inputs
+                    for (let i = 1; i <= cantidad; i++) {
+                        const div = document.createElement('div');
+                        div.className = "mt-3";
+                        div.innerHTML = `
+                            <label class="block font-bold text-gray-700 text-sm">Nombre Invitado ${i}</label>
+                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Nombre completo" required>
+                        `;
+                        dynamicContainer.appendChild(div);
+                    }
+                };
+
+                // Escuchar cambios
+                qtySelect.addEventListener('change', renderGuestInputs);
+                
+                // Ejecutar una vez al inicio
+                renderGuestInputs();
             }
         }
     }
@@ -549,6 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let allFieldsValid = true;
 
+            // Recolección campos estándar
             for (const fieldDefinition of formDefinitions[formId]) {
                 const dataField = fieldDefinition.field || fieldDefinition.label;
                 const fieldId = fieldDefinition.id || `${normalizeId(formId)}-${normalizeId(fieldDefinition.label)}`;
@@ -584,7 +613,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (!allFieldsValid) throw new Error("Faltan campos obligatorios (Foto, Días, Fechas, etc).");
+            // --- LÓGICA ESPECIAL DE RECOLECCIÓN PARA EVENTO ---
+            if (formId === 'Evento') {
+                const guestInputs = formPage.querySelectorAll('.guest-name-input');
+                const names = [];
+                let missingName = false;
+
+                guestInputs.forEach(input => {
+                    const val = input.value.trim();
+                    if (val) {
+                        names.push(val);
+                    } else {
+                        missingName = true;
+                    }
+                });
+
+                if (missingName) {
+                    throw new Error("Por favor, ingresa el nombre de todos los invitados.");
+                }
+
+                // Enviamos los nombres como una cadena separada por comas (o lo que prefiera tu backend)
+                data['Nombres_Invitados'] = names.join(', ');
+                
+                // Validación extra por si acaso
+                if (names.length === 0) allFieldsValid = false;
+            }
+            // --------------------------------------------------
+
+            if (!allFieldsValid) throw new Error("Faltan campos obligatorios.");
             
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
@@ -605,6 +661,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'Personal de servicio':
                     showConfirmationPopup('Personal Registrado', '¡Guardado! Se envio el acceso por WhatsApp.');
+                    break;
+                case 'Evento':
+                    showConfirmationPopup('Evento Creado', `Se han generado y enviado ${data.Cantidad} invitaciones.`);
                     break;
                 default:
                     showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
@@ -643,6 +702,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusSpans.forEach(s => s.textContent = "");
                 const trigger = activeForm.querySelector('#tipo-personal');
                 if (trigger) trigger.dispatchEvent(new Event('change'));
+                
+                // Resetear evento también
+                const eventTrigger = activeForm.querySelector('#evento-qty-select');
+                if (eventTrigger) eventTrigger.dispatchEvent(new Event('change'));
+
                 const checkboxGroups = activeForm.querySelectorAll('input[type="checkbox"]');
                 checkboxGroups.forEach(checkbox => checkbox.checked = false);
                 activeForm.querySelector('.form-error').classList.add('hidden');
