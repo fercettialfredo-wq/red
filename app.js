@@ -309,6 +309,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (tipo === 'Residente') {
                     const rel = item.Relacion || item.Relaci_x00f3_n;
                     if (rel) detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Relación: ${rel}</p>`;
+                } else if (tipo === 'Evento') {
+                    // Para Evento solo mostramos el nombre y que pertenece a evento (ya incluido en 'tipo')
+                    detalleExtra = ""; 
                 }
 
                 html += `
