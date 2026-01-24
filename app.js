@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('confirmation-popup');
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
-     
+      
     // PWA Elements
     const installPopup = document.getElementById('install-popup');
     const btnInstall = document.getElementById('btn-install');
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- PWA LOGIC ---
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-     
+      
     if (!(window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode)) {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-     
+      
     function setupConditionalFields(formPage) {
         const trigger = formPage.querySelector('#tipo-personal');
         const conditionalFields = formPage.querySelectorAll('.conditional-field');
@@ -668,7 +668,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     showConfirmationPopup('Personal Registrado', '¡Guardado! Se envio el acceso por WhatsApp.');
                     break;
                 case 'Evento':
-                    showConfirmationPopup('Evento Creado', `Se han generado y enviado ${data.Cantidad} invitaciones.`);
+                    const cant = parseInt(data.Cantidad) || 1;
+                    if (cant > 1) {
+                        showConfirmationPopup('Guardado', `Se enviaron los ${cant} accesos por WhatsApp.`);
+                    } else {
+                        showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
+                    }
                     break;
                 default:
                     showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
