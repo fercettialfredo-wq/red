@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('confirmation-popup');
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
-    
+     
     // PWA Elements
     const installPopup = document.getElementById('install-popup');
     const btnInstall = document.getElementById('btn-install');
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- PWA LOGIC ---
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-    
+     
     if (!(window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode)) {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -193,7 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Motivo', type: 'text' } 
         ],
         'Evento': [ 
-            // MODIFICADO: Solo el selector con las cantidades exactas y el ID específico para detectarlo
+            // NUEVO CAMPO: FECHA DEL EVENTO
+            { label: 'Fecha del Evento', type: 'date', field: 'FechaInicio' },
+            // Selector de cantidad
             { label: 'Número de invitaciones', type: 'select', options: ['1', '2', '3', '5', '10'], field: 'Cantidad', id: 'evento-qty-select' }
             // Los campos de texto se generan dinámicamente en generateFormContent
         ],
@@ -484,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+     
     function setupConditionalFields(formPage) {
         const trigger = formPage.querySelector('#tipo-personal');
         const conditionalFields = formPage.querySelectorAll('.conditional-field');
