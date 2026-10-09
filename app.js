@@ -689,12 +689,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             readyToSendPhoto = null;
 
+            // --- MENSAJES DE ÉXITO COHERENTES ---
             switch (formId) {
-                case 'Proveedor':
-                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
-                    break;
-                case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el acceso por WhatsApp.');
+                case 'Incidencias':
+                    showConfirmationPopup('Reporte Enviado', 'Se envió el reporte con éxito.');
                     break;
                 case 'Evento':
                     const cant = parseInt(data.Cantidad) || 1;
@@ -704,6 +702,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
                     }
                     break;
+                case 'Personal de servicio':
+                    showConfirmationPopup('Personal Registrado', 'Se generó y envió el acceso por WhatsApp.');
+                    break;
+                case 'Proveedor':
+                case 'Residente':
+                case 'Visita':
                 default:
                     showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
                     break;
