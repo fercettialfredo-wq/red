@@ -1,6 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- LÓGICA DE ACTUALIZACIÓN FORZADA DEL SERVICE WORKER ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(registration => {
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Nueva versión detectada, forzar la actualización
+                        newWorker.postMessage({ action: 'skipWaiting' });
+                    }
+                });
+            });
+        }).catch(err => console.error('Error al registrar Service Worker:', err));
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                window.location.reload();
+                refreshing = true;
+            }
+        });
+    }
+
     const CONFIG = {
-        // Asegúrate de que esta URL sea la de tu PROXY
+        // Asegúrese de que esta URL sea la de su PROXY
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
 
@@ -58,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
             if (!currentUser.condominio || currentUser.condominio === 'No especificado') {
-                console.warn("Sesión inválida (sin condominio), forzando logout.");
+                console.warn("Sesión inválida (sin condominio), forzando cierre de sesión.");
                 doLogout();
             } else {
                 showScreen(SCREENS.MENU);
@@ -157,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isIos && installPopup) {
             setTimeout(() => {
                 installPopup.style.display = 'block';
-                installText.innerHTML = "Para instalar en iPhone:<br>1. Pulsa <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Selecciona <b>'Agregar a Inicio'</b> ➕";
+                installText.innerHTML = "Para instalar en iPhone:<br>1. Pulse <b>Compartir</b> <i class='fa-solid fa-arrow-up-from-bracket'></i><br>2. Seleccione <b>'Agregar a Inicio'</b> ➕";
                 if(btnInstall) btnInstall.style.display = 'none'; 
                 if(btnCloseInstall) btnCloseInstall.textContent = "Entendido";
             }, 2000);
@@ -169,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                console.log(`Usuario decidió: ${outcome}`);
+                console.log(`El usuario decidió: ${outcome}`);
                 deferredPrompt = null;
                 installPopup.style.display = 'none';
             }
@@ -185,28 +208,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FORMS CONFIG ---
     const formDefinitions = {
         'Residente': [ 
-            { label: 'Nombre', type: 'text' }, 
-            { label: 'Relación', type: 'text' } 
+            { label: 'Nombre', type: 'text', placeholder: 'Ej. Juan Pérez' }, 
+            { label: 'Relación', type: 'text', placeholder: 'Ej. Familiar, Amigo', required: false } 
         ],
         'Visita': [ 
-            { label: 'Nombre', type: 'text' }, 
-            { label: 'Motivo', type: 'text' } 
+            { label: 'Nombre', type: 'text', placeholder: 'Ej. María García' }, 
+            { label: 'Motivo', type: 'text', placeholder: 'Ej. Visita médica, Cena', required: false } 
         ],
         'Evento': [ 
-            // NUEVO CAMPO: FECHA DEL EVENTO
             { label: 'Fecha del Evento', type: 'date', field: 'FechaInicio' },
-            // Selector de cantidad
             { label: 'Número de invitaciones', type: 'select', options: ['1', '2', '3', '5', '10'], field: 'Cantidad', id: 'evento-qty-select' }
-            // Los campos de texto se generan dinámicamente en generateFormContent
         ],
         'Proveedor': [ 
-            { label: 'Nombre', type: 'text' }, 
-            { label: 'Asunto', type: 'text' }, 
-            { label: 'Empresa', type: 'text' } 
+            { label: 'Nombre', type: 'text', placeholder: 'Ej. Roberto Gómez' }, 
+            { label: 'Asunto', type: 'text', placeholder: 'Ej. Reparación de internet' }, 
+            { label: 'Empresa', type: 'text', placeholder: 'Ej. Megacable' } 
         ],
         'Personal de servicio': [
-            { label: 'Nombre', type: 'text' }, 
-            { label: 'Cargo', type: 'text' },
+            { label: 'Nombre', type: 'text', placeholder: 'Ej. Ana Martínez' }, 
+            { label: 'Cargo', type: 'text', placeholder: 'Ej. Limpieza, Mantenimiento' },
             { label: 'Foto', type: 'file', field: 'Foto' }, 
             { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' }, 
             { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
@@ -219,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         'Incidencias': [ 
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
-            { label: 'Incidencia', type: 'textarea' } 
+            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. Fuga de agua en el pasillo principal' } 
         ]
     };
 
@@ -280,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 listContainer.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-clipboard-check fa-3x" style="color:#d1d5db; margin-bottom:15px;"></i>
-                        <p>No tienes accesos activos o QRs vigentes registrados.</p>
+                        <p>No tiene accesos activos o QRs vigentes registrados.</p>
                     </div>`;
                 return;
             }
@@ -341,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.confirmDeleteAccess = (id, nombre, tipo) => {
-        if(confirm(`¿Estás seguro que deseas eliminar el acceso de: ${nombre}? \nEl código QR dejará de funcionar.`)) {
+        if(confirm(`¿Está seguro que desea eliminar el acceso de: ${nombre}? \nEl código QR dejará de funcionar.`)) {
             deleteAccess(id, tipo);
         }
     };
@@ -368,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 // 3. MENSAJE CON BOTÓN VERDE
                 showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
-                // loadAccessList(); // SE ELIMINÓ PARA NO RECARGAR Y QUE EL BOTÓN OK DEL POPUP REDIRIJA
             } else {
                 alert("Error al eliminar: " + (result.message || "Desconocido"));
             }
@@ -402,7 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
                 inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">${optionsHtml}</select>`;
             } else if (field.type === 'textarea') {
-                inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" rows="4"></textarea>`;
+                const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
+                inputHtml = `<textarea id="${fieldId}" data-field="${dataField}" ${placeholder} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" rows="4"></textarea>`;
             } else if (field.type === 'file') {
                 inputHtml = `<div class="flex flex-col"><input type="file" id="${fieldId}" data-field="${dataField}" accept="image/*" capture="environment" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"><span id="${fieldId}-status" class="text-xs text-gray-500 mt-1"></span></div>`;
             } else if (field.type === 'checkbox-group') {
@@ -416,8 +436,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
                 inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">`;
             }
+            
             const conditionalClass = field.isConditional ? 'conditional-field' : '';
-            fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}</label>${inputHtml}</div>`;
+            // Indicador visual de opcional
+            const opcionalText = field.required === false ? ' <span class="text-xs text-gray-400 font-normal">(Opcional)</span>' : '';
+            
+            fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}${opcionalText}</label>${inputHtml}</div>`;
         });
         
         formPage.innerHTML = `
@@ -472,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         div.className = "mt-3";
                         div.innerHTML = `
                             <label class="block font-bold text-gray-700 text-sm">Nombre Invitado ${i}</label>
-                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Nombre completo" required>
+                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. Carlos Slim" required>
                         `;
                         dynamicContainer.appendChild(div);
                     }
@@ -520,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if(statusSpan) statusSpan.textContent = "";
                     return;
                 }
-                if(statusSpan) statusSpan.textContent = "Comprimiendo foto... espera un momento.";
+                if(statusSpan) statusSpan.textContent = "Comprimiendo foto... espere un momento.";
                 try {
                     readyToSendPhoto = await compressImage(file);
                     if(statusSpan) {
@@ -529,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } catch (error) {
                     console.error(error);
-                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intenta con otra.";
+                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intente con otra.";
                     readyToSendPhoto = null;
                 }
             });
@@ -594,6 +618,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (container && !container.classList.contains('visible')) isVisible = false;
                 if (!isVisible) continue;
 
+                // Verificamos si el campo es explícitamente requerido: false
+                const isRequired = fieldDefinition.required !== false;
+
                 if (fieldDefinition.type === 'checkbox-group') {
                     const checkboxes = element.querySelectorAll('input[type="checkbox"]:checked');
                     const selectedOptions = Array.from(checkboxes).map(cb => cb.value);
@@ -602,19 +629,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         const val = selectedOptions.join(', ');
                         data[dataField] = val;
-                        if (!val) allFieldsValid = false;
+                        if (isRequired && !val) allFieldsValid = false;
                     }
                 } else if (fieldDefinition.type === 'file') {
                     if (readyToSendPhoto) {
                         data[dataField] = readyToSendPhoto;
                     } else {
                         data[dataField] = "";
-                        if(isVisible) allFieldsValid = false;
+                        if(isVisible && isRequired) allFieldsValid = false;
                     }    
                 } else {
                     const val = element.value.trim();
                     data[dataField] = val;
-                    if (!val) allFieldsValid = false;
+                    if (isRequired && !val) allFieldsValid = false;
                 }
             }
 
@@ -634,13 +661,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (missingName) {
-                    throw new Error("Por favor, ingresa el nombre de todos los invitados.");
+                    throw new Error("Por favor, ingrese el nombre de todos los invitados.");
                 }
 
-                // Enviamos los nombres como una cadena separada por comas (o lo que prefiera tu backend)
+                // Enviamos los nombres como una cadena separada por comas
                 data['Nombres_Invitados'] = names.join(', ');
                 
-                // Validación extra por si acaso
                 if (names.length === 0) allFieldsValid = false;
             }
             // --------------------------------------------------
@@ -662,21 +688,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             switch (formId) {
                 case 'Proveedor':
-                    showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
+                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
                     break;
                 case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envio el acceso por WhatsApp.');
+                    showConfirmationPopup('Personal Registrado', '¡Guardado! Se envió el acceso por WhatsApp.');
                     break;
                 case 'Evento':
                     const cant = parseInt(data.Cantidad) || 1;
                     if (cant > 1) {
                         showConfirmationPopup('Guardado', `Se enviaron los ${cant} accesos por WhatsApp.`);
                     } else {
-                        showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
+                        showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
                     }
                     break;
                 default:
-                    showConfirmationPopup('Guardado', 'Se envio el acceso por WhatsApp.');
+                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
                     break;
             }
 
