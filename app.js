@@ -132,8 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
             loginButton.textContent = 'Verificando...';
 
             try {
+                // SE AGREGA CACHE: NO-STORE PARA EVITAR EL ERROR 404 DEL SERVICE WORKER EN CELULAR
                 const response = await fetch(CONFIG.API_PROXY_URL, {
                     method: 'POST',
+                    cache: 'no-store',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', username, password })
                 });
@@ -261,14 +263,14 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
             { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
             { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
-            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con', required: false },
+            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con', required: false }, // Único opcional
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
             { label: 'Fecha Inicio', type: 'date', isConditional: true }, 
             { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
         'Incidencias': [ 
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
-            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. No me llega el acceso por WhatsApp' } 
+            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. No me esta llegando el acceso por WhatsApp' } 
         ]
     };
 
@@ -313,9 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '<div class="loader"></div>';
 
         try {
-            // Petición al Proxy
+            // SE AGREGA CACHE: NO-STORE PARA EVITAR EL ERROR 404
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
+                cache: 'no-store',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'get_active_accesses', 
@@ -403,8 +406,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deleteAccess(id, tipo) {
         try {
+            // SE AGREGA CACHE: NO-STORE
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
+                cache: 'no-store',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     action: 'delete_access',
@@ -519,7 +524,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     warning.innerHTML = `<p class="font-bold">⚠️ Importante:</p><p>Se generarán ${cantidad} pases QR. Asegúrese de que es correcto.</p>`;
                     dynamicContainer.appendChild(warning);
 
-                    // Generar inputs (Cambiado el placeholder para nombre más común)
                     for (let i = 1; i <= cantidad; i++) {
                         const div = document.createElement('div');
                         div.className = "mt-3";
@@ -714,8 +718,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!allFieldsValid) throw new Error("Validation");
 
+            // SE AGREGA CACHE: NO-STORE PARA EVITAR EL ERROR 404
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
+                cache: 'no-store',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)    
             });
