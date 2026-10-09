@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const installText = document.getElementById('install-text');
     let deferredPrompt;
 
+    // --- MAPA DE NOMBRES VISUALES (Evita cambiar el HTML) ---
+    const displayTitles = {
+        'Residente': 'QR Permanente',
+        'Visita': 'QR de un solo uso',
+        'Eliminar QR': 'Eliminar Acceso'
+    };
+
     const normalizeId = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-');
 
     const showScreen = (screenId) => {
@@ -59,12 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
             if (activeScreen.classList.contains('form-page')) {
-                // Obtenemos el ID del formulario actual
+                // Obtenemos el ID del formulario actual (HTML Intacto)
                 const formId = activeScreen.dataset.formId;
 
                 // --- DETECTAR EL MÓDULO DE ELIMINAR/ACCESOS ---
-                if (formId === 'Eliminar Acceso' || formId === 'Accesos Activos') {
-                    renderAccesosActivos(activeScreen);
+                if (formId === 'Eliminar QR' || formId === 'Accesos Activos') {
+                    renderAccesosActivos(activeScreen, formId);
                 } else {
                     readyToSendPhoto = null;
                     generateFormContent(activeScreen);
@@ -81,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
             if (!currentUser.condominio || currentUser.condominio === 'No especificado') {
-                console.warn("Sesión inválida (sin condominio), forzando cierre de sesión.");
+                console.warn("Sesión inválida, forzando cierre de sesión.");
                 doLogout();
             } else {
                 showScreen(SCREENS.MENU);
@@ -128,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (!response.ok || !data.success) {
-                    throw new Error('Error al iniciar sesión');
+                    throw new Error('Error');
                 }
 
                 currentUser = { 
@@ -147,7 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showScreen(SCREENS.MENU);
 
             } catch (error) {
-                loginError.textContent = 'Error';
+                // Solo muestra "Error", no expone detalles técnicos
+                loginError.textContent = "Error"; 
                 loginError.classList.remove('hidden');
             } finally {
                 loginButton.disabled = false;
@@ -192,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                console.log(`El usuario decidió: ${outcome}`);
                 deferredPrompt = null;
                 installPopup.style.display = 'none';
             }
@@ -207,13 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FORMS CONFIG ---
     const formDefinitions = {
-        'QR Permanente': [ 
+        'Residente': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Juan Pérez' }, 
-            { label: 'Relación', type: 'text', placeholder: 'Ej. Familiar, Amigo (Opcional)', required: false } 
+            { label: 'Relación', type: 'text', placeholder: 'Ej. Familiar, Amigo', required: false } 
         ],
-        'QR de un solo uso': [ 
+        'Visita': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. María García' }, 
-            { label: 'Motivo', type: 'text', placeholder: 'Ej. Visita médica, Cena (Opcional)', required: false } 
+            { label: 'Motivo', type: 'text', placeholder: 'Ej. Visita médica, Cena', required: false } 
         ],
         'Evento': [ 
             { label: 'Fecha del Evento', type: 'date', field: 'FechaInicio' },
@@ -221,30 +228,32 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         'Proveedor': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Roberto Gómez' }, 
-            { label: 'Asunto', type: 'text', placeholder: 'Ej. Dejar comida en caseta' }, 
-            { label: 'Empresa', type: 'text', placeholder: 'Ej. Rappi, Uber Eats' } 
+            { label: 'Asunto', type: 'text', placeholder: 'Ej. Comida, dejar en caseta' }, 
+            { label: 'Empresa', type: 'text', placeholder: 'Ej. Rappi' } 
         ],
         'Personal de servicio': [
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Ana Martínez' }, 
-            { label: 'Cargo', type: 'text', placeholder: 'Ej. Limpieza, Mantenimiento' },
-            { label: 'Foto', type: 'file', field: 'Foto' }, 
+            { label: 'Cargo', type: 'text', placeholder: 'Ej. Limpieza, Mantenimiento', required: false },
+            { label: 'Foto', type: 'file', field: 'Foto', required: false }, 
             { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' }, 
             { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
             { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
             { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
             { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con', required: false },
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
-            { label: 'Fecha Inicio', type: 'date', isConditional: true }, 
-            { label: 'Fecha Fin', type: 'date', isConditional: true }
+            { label: 'Fecha Inicio', type: 'date', isConditional: true, required: false }, 
+            { label: 'Fecha Fin', type: 'date', isConditional: true, required: false }
         ],
         'Incidencias': [ 
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
-            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. La aplicación está dando error al cargar' } 
+            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. La aplicación marca error' } 
         ]
     };
 
     // --- NUEVA LÓGICA: ACCESOS ACTIVOS (LIBRETA) ---
-    async function renderAccesosActivos(container) {
+    async function renderAccesosActivos(container, formId) {
+        const visualTitle = displayTitles[formId] || 'Accesos Activos';
+
         // Estructura Base de la Pantalla
         container.innerHTML = `
             <header class="header-app">
@@ -254,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </header>
             <div class="form-title-section" style="justify-content: space-between;">
-                <h2 class="form-title">Accesos Activos</h2>
+                <h2 class="form-title">${visualTitle}</h2>
                 <div style="display:flex; align-items:center; gap:15px;">
                     <i class="fas fa-sync-alt fa-lg cursor-pointer" id="btn-refresh-access" style="color: #4ade80;"></i>
                     <div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div>
@@ -320,19 +329,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fecha = item.Fecha || item.Created || "";
                 const dateStr = fecha ? new Date(fecha).toLocaleDateString() : "";
 
+                // Ajuste de visualización del Tipo sin cambiar el código de la BD
+                let visualTipo = displayTitles[tipo] || tipo;
+
                 // 2. DETALLES EXTRA SEGÚN TIPO
                 let detalleExtra = "";
-                if (tipo === 'QR de un solo uso' && item.Motivo) {
+                if ((tipo === 'Visita') && item.Motivo) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Motivo: ${item.Motivo}</p>`;
-                } else if (tipo === 'Personal de servicio' && item.Cargo) {
+                } else if (tipo === 'Personal' && item.Cargo) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Cargo: ${item.Cargo}</p>`;
                 } else if (tipo === 'Proveedor' && item.Empresa) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Empresa: ${item.Empresa}</p>`;
-                } else if (tipo === 'QR Permanente') {
+                } else if (tipo === 'Residente') {
                     const rel = item.Relacion || item.Relaci_x00f3_n;
                     if (rel) detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Relación: ${rel}</p>`;
                 } else if (tipo === 'Evento') {
-                    // Para Evento solo mostramos el nombre y que pertenece a evento (ya incluido en 'tipo')
                     detalleExtra = ""; 
                 }
 
@@ -340,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="access-card">
                         <div class="access-info">
                             <h4>${nombre}</h4>
-                            <p>${tipo} • ${dateStr}</p>
+                            <p>${visualTipo} • ${dateStr}</p>
                             ${detalleExtra}
                         </div>
                         <div class="access-actions">
@@ -355,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
             listContainer.innerHTML = html;
 
         } catch (error) {
-            console.error(error);
             listContainer.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Error</p></div>`;
         }
     }
@@ -367,9 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     async function deleteAccess(id, tipo) {
-        // Mostrar estado de carga visual simple
-        const listContainer = document.getElementById('access-list-container');
-
         try {
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
@@ -386,19 +393,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // 3. MENSAJE CON BOTÓN VERDE
+                // MENSAJE CON BOTÓN VERDE
                 showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
             } else {
                 alert("Error");
             }
 
         } catch (error) {
-            console.error(error);
             alert("Error");
         }
     }
-
-    // --- FIN NUEVA LÓGICA ---
 
     // ==========================================
     // CORRECCIÓN VISUAL DE FORMULARIOS ("ENCUADRE")
@@ -407,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formPage.innerHTML = '';  
         const formId = formPage.dataset.formId;
         const fields = formDefinitions[formId];
+        const visualTitle = displayTitles[formId] || formId;
 
         if (!fields) return;
 
@@ -452,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </header>
             <div class="form-title-section" style="justify-content: space-between;">
-                <h2 class="form-title">${formId}</h2>
+                <h2 class="form-title">${visualTitle}</h2>
                 <div class="home-icon cursor-pointer"><i class="fa-solid fa-house" style="font-size: 1.5rem;"></i></div>
             </div>
             <div class="form-container">
@@ -490,13 +495,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     warning.innerHTML = `<p class="font-bold">⚠️ Importante:</p><p>Se generarán ${cantidad} pases QR. Asegúrese de que es correcto.</p>`;
                     dynamicContainer.appendChild(warning);
 
-                    // Generar inputs
+                    // Generar inputs (Cambiado el placeholder para nombre más común)
                     for (let i = 1; i <= cantidad; i++) {
                         const div = document.createElement('div');
                         div.className = "mt-3";
                         div.innerHTML = `
                             <label class="block font-bold text-gray-700 text-sm">Nombre Invitado ${i}</label>
-                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. Ana Martínez" required>
+                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. Luis Ramírez" required>
                         `;
                         dynamicContainer.appendChild(div);
                     }
@@ -552,8 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusSpan.classList.add("text-green-600");
                     }
                 } catch (error) {
-                    console.error(error);
-                    if(statusSpan) statusSpan.textContent = "Error";
+                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intente con otra.";
                     readyToSendPhoto = null;
                 }
             });
@@ -576,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 resolve(dataUrl);
             };
-            img.onerror = () => reject("Error");
+            img.onerror = () => reject("Error al procesar imagen");
         });
     }
 
@@ -584,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         const form = event.target;
         const formPage = form.closest('.form-page');
-        const formId = formPage.dataset.formId;
+        const formId = formPage.dataset.formId; // Envia el Id original (ej: 'Residente') a tu servidor
         const saveButton = form.querySelector('.btn-save');
         const errorP = form.querySelector('.form-error');
         errorP.classList.add('hidden');
@@ -661,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (missingName) {
-                    throw new Error("Error");
+                    throw new Error("Validation"); 
                 }
 
                 // Enviamos los nombres como una cadena separada por comas
@@ -671,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // --------------------------------------------------
 
-            if (!allFieldsValid) throw new Error("Error");
+            if (!allFieldsValid) throw new Error("Validation");
 
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
@@ -680,8 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error('Error');
+                throw new Error("Server_Error"); 
             }
 
             readyToSendPhoto = null;
@@ -707,8 +710,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) {
-            console.error("Error:", error);
-            errorP.textContent = 'Error';
+            // Manejo de error limpio sin exponer ligas
+            if (error.message === "Validation") {
+                errorP.textContent = "Error: Faltan datos obligatorios.";
+            } else {
+                errorP.textContent = "Error"; // Estricto como lo solicitaste
+            }
             errorP.classList.remove('hidden');
             errorP.scrollIntoView({ behavior: 'smooth' });
         } finally {
