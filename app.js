@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('confirmation-popup');
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
-      
+
     // PWA Elements
     const installPopup = document.getElementById('install-popup');
     const btnInstall = document.getElementById('btn-install');
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formId = activeScreen.dataset.formId;
 
                 // --- DETECTAR EL MÓDULO DE ELIMINAR/ACCESOS ---
-                if (formId === 'Eliminar QR' || formId === 'Accesos Activos') {
+                if (formId === 'Eliminar Acceso' || formId === 'Accesos Activos') {
                     renderAccesosActivos(activeScreen);
                 } else {
                     readyToSendPhoto = null;
@@ -124,18 +124,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', username, password })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Credenciales inválidas');
+                    throw new Error('Error al iniciar sesión');
                 }
-                
+
                 currentUser = { 
                     username: username, 
                     condominio: data.condominioId || data.condominio || (data.data && data.data.condominioId) || (data.data && data.data.condominio)
                 };
-                
+
                 if (rememberMeCheckbox.checked) {
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     sessionStorage.removeItem('currentUser');
@@ -143,11 +143,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
                     localStorage.removeItem('currentUser');
                 }
-                
+
                 showScreen(SCREENS.MENU);
 
             } catch (error) {
-                loginError.textContent = error.message;
+                loginError.textContent = 'Error';
                 loginError.classList.remove('hidden');
             } finally {
                 loginButton.disabled = false;
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- PWA LOGIC ---
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-      
+
     if (!(window.matchMedia('(display-mode: standalone)').matches || isInStandaloneMode)) {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -207,13 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FORMS CONFIG ---
     const formDefinitions = {
-        'Residente': [ 
+        'QR Permanente': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Juan Pérez' }, 
-            { label: 'Relación', type: 'text', placeholder: 'Ej. Familiar, Amigo', required: false } 
+            { label: 'Relación', type: 'text', placeholder: 'Ej. Familiar, Amigo (Opcional)', required: false } 
         ],
-        'Visita': [ 
+        'QR de un solo uso': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. María García' }, 
-            { label: 'Motivo', type: 'text', placeholder: 'Ej. Visita médica, Cena', required: false } 
+            { label: 'Motivo', type: 'text', placeholder: 'Ej. Visita médica, Cena (Opcional)', required: false } 
         ],
         'Evento': [ 
             { label: 'Fecha del Evento', type: 'date', field: 'FechaInicio' },
@@ -221,8 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         'Proveedor': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Roberto Gómez' }, 
-            { label: 'Asunto', type: 'text', placeholder: 'Ej. Reparación de internet' }, 
-            { label: 'Empresa', type: 'text', placeholder: 'Ej. Megacable' } 
+            { label: 'Asunto', type: 'text', placeholder: 'Ej. Dejar comida en caseta' }, 
+            { label: 'Empresa', type: 'text', placeholder: 'Ej. Rappi, Uber Eats' } 
         ],
         'Personal de servicio': [
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Ana Martínez' }, 
@@ -232,14 +232,14 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
             { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
             { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
-            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con' },
+            { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con', required: false },
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
             { label: 'Fecha Inicio', type: 'date', isConditional: true }, 
             { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
         'Incidencias': [ 
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
-            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. Fuga de agua en el pasillo principal' } 
+            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. La aplicación está dando error al cargar' } 
         ]
     };
 
@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const result = await response.json();
-            
+
             // Si falla o no hay data
             if (!result.success || !result.data || result.data.length === 0) {
                 listContainer.innerHTML = `
@@ -322,13 +322,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 2. DETALLES EXTRA SEGÚN TIPO
                 let detalleExtra = "";
-                if (tipo === 'Visita' && item.Motivo) {
+                if (tipo === 'QR de un solo uso' && item.Motivo) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Motivo: ${item.Motivo}</p>`;
-                } else if (tipo === 'Personal' && item.Cargo) {
+                } else if (tipo === 'Personal de servicio' && item.Cargo) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Cargo: ${item.Cargo}</p>`;
                 } else if (tipo === 'Proveedor' && item.Empresa) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Empresa: ${item.Empresa}</p>`;
-                } else if (tipo === 'Residente') {
+                } else if (tipo === 'QR Permanente') {
                     const rel = item.Relacion || item.Relaci_x00f3_n;
                     if (rel) detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Relación: ${rel}</p>`;
                 } else if (tipo === 'Evento') {
@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
-            listContainer.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Error al conectar con el servidor.</p></div>`;
+            listContainer.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Error</p></div>`;
         }
     }
 
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteAccess(id, tipo) {
         // Mostrar estado de carga visual simple
         const listContainer = document.getElementById('access-list-container');
-        
+
         try {
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
@@ -389,12 +389,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 3. MENSAJE CON BOTÓN VERDE
                 showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
             } else {
-                alert("Error al eliminar: " + (result.message || "Desconocido"));
+                alert("Error");
             }
 
         } catch (error) {
             console.error(error);
-            alert("Error de conexión al intentar eliminar.");
+            alert("Error");
         }
     }
 
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formPage.innerHTML = '';  
         const formId = formPage.dataset.formId;
         const fields = formDefinitions[formId];
-        
+
         if (!fields) return;
 
         let fieldsHtml = '';
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const fieldId = field.id || `${normalizeId(formId)}-${normalizeId(field.label)}`;
             const dataField = field.field || field.label;
             let inputHtml = '';
-            
+
             if (field.type === 'select') {
                 const optionsHtml = field.options.map(opt => `<option>${opt}</option>`).join('');
                 inputHtml = `<select id="${fieldId}" data-field="${dataField}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">${optionsHtml}</select>`;
@@ -436,14 +436,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const placeholder = field.placeholder ? `placeholder="${field.placeholder}"` : '';
                 inputHtml = `<input type="${field.type}" id="${fieldId}" data-field="${dataField}" ${placeholder} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">`;
             }
-            
+
             const conditionalClass = field.isConditional ? 'conditional-field' : '';
             // Indicador visual de opcional
             const opcionalText = field.required === false ? ' <span class="text-xs text-gray-400 font-normal">(Opcional)</span>' : '';
-            
+
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}${opcionalText}</label>${inputHtml}</div>`;
         });
-        
+
         formPage.innerHTML = `
             <header class="header-app">
                 <div class="header-logo">
@@ -466,10 +466,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="form-error text-red-600 text-sm text-center hidden mt-2"></p>
                 </form>
             </div>`;
-        
+
         formPage.querySelector('.home-icon').addEventListener('click', () => showScreen(SCREENS.MENU));
         formPage.querySelector('form').addEventListener('submit', handleFormSubmit);
-        
+
         setupConditionalFields(formPage);
         setupFileInputListeners(formPage);
 
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const renderGuestInputs = () => {
                     const cantidad = parseInt(qtySelect.value) || 1;
                     dynamicContainer.innerHTML = ''; // Limpiar anteriores
-                    
+
                     // Aviso de advertencia
                     const warning = document.createElement('div');
                     warning.className = "p-3 mb-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 text-sm";
@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         div.className = "mt-3";
                         div.innerHTML = `
                             <label class="block font-bold text-gray-700 text-sm">Nombre Invitado ${i}</label>
-                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. Carlos Slim" required>
+                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. Ana Martínez" required>
                         `;
                         dynamicContainer.appendChild(div);
                     }
@@ -504,18 +504,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Escuchar cambios
                 qtySelect.addEventListener('change', renderGuestInputs);
-                
+
                 // Ejecutar una vez al inicio
                 renderGuestInputs();
             }
         }
     }
-      
+
     function setupConditionalFields(formPage) {
         const trigger = formPage.querySelector('#tipo-personal');
         const conditionalFields = formPage.querySelectorAll('.conditional-field');
         if (!trigger || conditionalFields.length === 0) return;
-        
+
         const updateVisibility = () => {
             const shouldBeVisible = trigger.value === 'Eventual';
             conditionalFields.forEach(field => {
@@ -534,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupFileInputListeners(formPage) {
         const fileInputs = formPage.querySelectorAll('input[type="file"]');
-        
+
         fileInputs.forEach(input => {
             input.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
@@ -553,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } catch (error) {
                     console.error(error);
-                    if(statusSpan) statusSpan.textContent = "❌ Error en la foto. Intente con otra.";
+                    if(statusSpan) statusSpan.textContent = "Error";
                     readyToSendPhoto = null;
                 }
             });
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 resolve(dataUrl);
             };
-            img.onerror = () => reject("Error al procesar imagen");
+            img.onerror = () => reject("Error");
         });
     }
 
@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveButton = form.querySelector('.btn-save');
         const errorP = form.querySelector('.form-error');
         errorP.classList.add('hidden');
-        
+
         if (saveButton) {
             saveButton.disabled = true;
             saveButton.textContent = 'Enviando...';
@@ -661,18 +661,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (missingName) {
-                    throw new Error("Por favor, ingrese el nombre de todos los invitados.");
+                    throw new Error("Error");
                 }
 
                 // Enviamos los nombres como una cadena separada por comas
                 data['Nombres_Invitados'] = names.join(', ');
-                
+
                 if (names.length === 0) allFieldsValid = false;
             }
             // --------------------------------------------------
 
-            if (!allFieldsValid) throw new Error("Faltan campos obligatorios.");
-            
+            if (!allFieldsValid) throw new Error("Error");
+
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -681,9 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errData = await response.json();
-                throw new Error(errData.message || 'Error en el servidor');
+                throw new Error('Error');
             }
-            
+
             readyToSendPhoto = null;
 
             switch (formId) {
@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Error:", error);
-            errorP.textContent = error.message;
+            errorP.textContent = 'Error';
             errorP.classList.remove('hidden');
             errorP.scrollIntoView({ behavior: 'smooth' });
         } finally {
@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusSpans.forEach(s => s.textContent = "");
                 const trigger = activeForm.querySelector('#tipo-personal');
                 if (trigger) trigger.dispatchEvent(new Event('change'));
-                
+
                 // Resetear evento también
                 const eventTrigger = activeForm.querySelector('#evento-qty-select');
                 if (eventTrigger) eventTrigger.dispatchEvent(new Event('change'));
