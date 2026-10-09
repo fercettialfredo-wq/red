@@ -61,6 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const normalizeId = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-');
 
+    // --- PARCHE DE FECHAS PARA CELULARES (IOS/ANDROID) ---
+    const parseDateSafe = (dateStr) => {
+        if (!dateStr) return new Date();
+        // Reemplaza guiones por diagonales, que es el único formato que Safari móvil nunca falla en leer
+        return new Date(dateStr.replace(/-/g, '/'));
+    };
+
     const showScreen = (screenId) => {
         screens.forEach(screen => screen.classList.remove('active'));
         const activeScreen = document.getElementById(screenId);
@@ -88,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
             if (!currentUser.condominio || currentUser.condominio === 'No especificado') {
-                console.warn("Sesión inválida, forzando cierre de sesión.");
                 doLogout();
             } else {
                 showScreen(SCREENS.MENU);
@@ -330,10 +336,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. ORDENAR: Del más nuevo al más viejo
+            // 1. ORDENAR: Del más nuevo al más viejo (USANDO LA FUNCIÓN SEGURA PARA MOVILES)
             result.data.sort((a, b) => {
-                const dateA = new Date(a.Created || a.Fecha);
-                const dateB = new Date(b.Created || b.Fecha);
+                const dateA = parseDateSafe(a.Created || a.Fecha);
+                const dateB = parseDateSafe(b.Created || b.Fecha);
                 return dateB - dateA;
             });
 
@@ -343,7 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nombre = item.Nombre || item.Visitante || "Sin nombre";
                 const tipo = item.Tipo || "Acceso";
                 const fecha = item.Fecha || item.Created || "";
-                const dateStr = fecha ? new Date(fecha).toLocaleDateString() : "";
+                
+                // Formateo seguro de fecha
+                const dateObj = parseDateSafe(fecha);
+                const dateStr = isNaN(dateObj.getTime()) ? "" : dateObj.toLocaleDateString();
 
                 // Ajuste de visualización del Tipo sin cambiar el código de la BD
                 let visualTipo = displayTitles[tipo] || tipo;
@@ -409,7 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // MENSAJE CON BOTÓN VERDE
                 showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
             } else {
                 alert("Error");
@@ -580,23 +588,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- COMPRESIÓN DE IMAGEN MEJORADA PARA CELULARES ---
     function compressImage(file) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.src = URL.createObjectURL(file);
+            // Compatibilidad de lectura de archivos pesados
+            const objectUrl = URL.createObjectURL(file);
+            img.src = objectUrl;
+            
             img.onload = () => {
-                URL.revokeObjectURL(img.src);
+                URL.revokeObjectURL(objectUrl);
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600; 
+                // Reducimos un poco el max-width para asegurar que no colapse la RAM de celulares viejos
+                const MAX_WIDTH = 500; 
                 const scaleSize = MAX_WIDTH / img.width;
-                if (scaleSize >= 1) { canvas.width = img.width; canvas.height = img.height; } 
-                else { canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize; }
+                if (scaleSize >= 1) { 
+                    canvas.width = img.width; 
+                    canvas.height = img.height; 
+                } else { 
+                    canvas.width = MAX_WIDTH; 
+                    canvas.height = img.height * scaleSize; 
+                }
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 resolve(dataUrl);
             };
-            img.onerror = () => reject("Error al procesar imagen");
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject("Error al procesar imagen");
+            };
         });
     }
 
@@ -604,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         const form = event.target;
         const formPage = form.closest('.form-page');
-        const formId = formPage.dataset.formId; // Envia el Id original (ej: 'Residente') a tu servidor
+        const formId = formPage.dataset.formId; 
         const saveButton = form.querySelector('.btn-save');
         const errorP = form.querySelector('.form-error');
         errorP.classList.add('hidden');
