@@ -1,5 +1,5 @@
-// CAMBIO 1: Subimos la versión a 'v2' para obligar al navegador a borrar lo viejo
-const CACHE_NAME = 'ravens-access-v16';
+// Aumentamos la versión para forzar la actualización en los dispositivos
+const CACHE_NAME = 'ravens-access-v17';
 
 const urlsToCache = [
   './',
@@ -16,6 +16,13 @@ const urlsToCache = [
   './icons/incidencias.svg'
 ];
 
+// Escucha el mensaje desde app.js para forzar el reemplazo del Service Worker
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('install', event => {
   // Obliga al SW nuevo a activarse inmediatamente
   self.skipWaiting(); 
@@ -26,7 +33,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  // CAMBIO 2: Borrar cachés viejos (v1) para que no se mezclen estilos
+  // Borrar cachés viejos para que no se mezclen estilos
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -42,7 +49,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // CAMBIO 3: Estrategia "Network First" (Internet primero, caché después)
+  // Estrategia "Network First" (Internet primero, caché después)
   // Esto asegura que siempre veas los cambios recientes.
   event.respondWith(
     fetch(event.request)
