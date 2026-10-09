@@ -1,5 +1,5 @@
 // Aumentamos la versión para forzar la actualización en los dispositivos
-const CACHE_NAME = 'ravens-access-v19';
+const CACHE_NAME = 'ravens-access-v20';
 
 const urlsToCache = [
   './',
