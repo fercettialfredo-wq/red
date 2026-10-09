@@ -168,8 +168,24 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutButton.addEventListener('click', doLogout);
     }
 
+    // --- ACTUALIZAR NOMBRES DEL MENÚ DINÁMICAMENTE (Evita cambiar el HTML) ---
     if (menuItems.length > 0) {
         menuItems.forEach(item => {
+            // Cambiamos el texto respetando los iconos (font-awesome, imgs, etc)
+            const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.nodeValue.includes('Residente')) {
+                    node.nodeValue = node.nodeValue.replace('Residente', 'QR Permanente');
+                }
+                if (node.nodeValue.includes('Visita')) {
+                    node.nodeValue = node.nodeValue.replace('Visita', 'QR de un solo uso');
+                }
+                if (node.nodeValue.includes('Eliminar QR')) {
+                    node.nodeValue = node.nodeValue.replace('Eliminar QR', 'Eliminar Acceso');
+                }
+            }
+
             item.addEventListener('click', () => showScreen(item.dataset.screen));
         });
     }
@@ -233,20 +249,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         'Personal de servicio': [
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Ana Martínez' }, 
-            { label: 'Cargo', type: 'text', placeholder: 'Ej. Limpieza, Mantenimiento', required: false },
-            { label: 'Foto', type: 'file', field: 'Foto', required: false }, 
+            { label: 'Cargo', type: 'text', placeholder: 'Ej. Limpieza, Mantenimiento' },
+            { label: 'Foto', type: 'file', field: 'Foto' }, 
             { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' }, 
             { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
             { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
             { label: 'Requiere Revisión', type: 'select', options: ['SÍ', 'NO'], field: 'Requiere_Revision' },
             { label: 'Puede Salir Con', type: 'checkbox-group', options: ['Perros', 'Autos', 'Niños'], field: 'Puede_Salir_Con', required: false },
             { label: 'Tipo', type: 'select', options: ['Fijo/Planta', 'Eventual'], id: 'tipo-personal' },
-            { label: 'Fecha Inicio', type: 'date', isConditional: true, required: false }, 
-            { label: 'Fecha Fin', type: 'date', isConditional: true, required: false }
+            { label: 'Fecha Inicio', type: 'date', isConditional: true }, 
+            { label: 'Fecha Fin', type: 'date', isConditional: true }
         ],
         'Incidencias': [ 
             { label: 'Nivel de Urgencia', type: 'select', options: ['Baja', 'Media', 'Alta'] }, 
-            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. La aplicación marca error' } 
+            { label: 'Incidencia', type: 'textarea', placeholder: 'Ej. No me llega el acceso por WhatsApp' } 
         ]
     };
 
