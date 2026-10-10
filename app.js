@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'Personal de servicio': [
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Ana Martínez' }, 
             { label: 'Cargo', type: 'text', placeholder: 'Ej. Limpieza, Mantenimiento' },
-            { label: 'Foto', type: 'file', field: 'Foto' }, 
+            { label: 'Foto', type: 'file', field: 'Foto', required: false }, 
             { label: 'Hora de Entrada', type: 'time', field: 'Hora_Entrada' }, 
             { label: 'Hora de Salida', type: 'time', field: 'Hora_Salida' },
             { label: 'Días de Trabajo', type: 'checkbox-group', options: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], field: 'Dias_Trabajo' },
@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.');
+                showConfirmationPopup('Eliminado', 'El acceso se ha eliminado correctamente.', false);
             } else {
                 alert("Error");
             }
@@ -511,6 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (formId === 'Evento') {
             const qtySelect = formPage.querySelector('#evento-qty-select');
             const dynamicContainer = formPage.querySelector('#dynamic-fields-container');
+            const exampleNames = ["Luis Ramírez", "María García", "Carlos López", "Ana Martínez", "Jorge Sánchez", "Laura Pérez", "Pedro Gómez", "Sofía Díaz", "Miguel Torres", "Elena Flores"];
 
             if (qtySelect && dynamicContainer) {
                 // Función para pintar los inputs
@@ -527,9 +528,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     for (let i = 1; i <= cantidad; i++) {
                         const div = document.createElement('div');
                         div.className = "mt-3";
+                        const example = exampleNames[(i - 1) % exampleNames.length];
                         div.innerHTML = `
                             <label class="block font-bold text-gray-700 text-sm">Nombre Invitado ${i}</label>
-                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. Luis Ramírez" required>
+                            <input type="text" class="guest-name-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Ej. ${example}" required>
                         `;
                         dynamicContainer.appendChild(div);
                     }
@@ -634,6 +636,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorP = form.querySelector('.form-error');
         errorP.classList.add('hidden');
 
+        // CALCULAR CANTIDAD DE ACCESOS PARA LÍMITE DIARIO
+        let isAccessForm = formId !== 'Incidencias';
+        let cantAccesos = 1;
+        if (formId === 'Evento') {
+            const qtySelect = form.querySelector('#evento-qty-select');
+            if (qtySelect) cantAccesos = parseInt(qtySelect.value) || 1;
+        }
+
+        // VALIDACIÓN LÍMITE DIARIO DE 100 USOS
+        if (isAccessForm) {
+            const today = new Date().toLocaleDateString('es-MX');
+            const limitKey = `ravens_limit_${currentUser.username}_${today}`;
+            let currentCount = parseInt(localStorage.getItem(limitKey) || '0');
+            
+            if (currentCount + cantAccesos > 100) {
+                errorP.innerHTML = `⚠️ <b>Límite diario excedido.</b><br>Ha generado ${currentCount} de 100 accesos máximos permitidos hoy.`;
+                errorP.classList.remove('hidden');
+                return; // Bloquea el envío si se supera el límite
+            }
+        }
+
         if (saveButton) {
             saveButton.disabled = true;
             saveButton.textContent = 'Enviando...';
@@ -730,29 +753,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error("Server_Error"); 
             }
 
+            // SI LA PETICIÓN FUE EXITOSA, SUMAR AL CONTADOR DIARIO
+            if (isAccessForm) {
+                const today = new Date().toLocaleDateString('es-MX');
+                const limitKey = `ravens_limit_${currentUser.username}_${today}`;
+                let currentCount = parseInt(localStorage.getItem(limitKey) || '0');
+                localStorage.setItem(limitKey, currentCount + cantAccesos);
+            }
+
             readyToSendPhoto = null;
 
             // --- MENSAJES DE ÉXITO COHERENTES ---
             switch (formId) {
                 case 'Incidencias':
-                    showConfirmationPopup('Reporte Enviado', 'Se envió el reporte con éxito.');
+                    showConfirmationPopup('Reporte Enviado', 'Se envió el reporte con éxito.', false);
                     break;
                 case 'Evento':
                     const cant = parseInt(data.Cantidad) || 1;
                     if (cant > 1) {
-                        showConfirmationPopup('Guardado', `Se enviaron los ${cant} accesos por WhatsApp.`);
+                        showConfirmationPopup('Guardado', `Se enviaron los ${cant} accesos por WhatsApp.`, true);
                     } else {
-                        showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
+                        showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true);
                     }
                     break;
                 case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', 'Se generó y envió el acceso por WhatsApp.');
+                    showConfirmationPopup('Personal Registrado', 'Se generó y envió el acceso por WhatsApp.', true);
                     break;
                 case 'Proveedor':
                 case 'Residente':
                 case 'Visita':
                 default:
-                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.');
+                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true);
                     break;
             }
 
@@ -773,10 +804,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showConfirmationPopup(title, message) {
+    // MODIFICADO: Ahora acepta un parámetro 'isAccess' para mostrar el icono de WhatsApp
+    function showConfirmationPopup(title, message, isAccess = false) {
         if (popup) {
             popup.querySelector('h3').textContent = title;
-            popup.querySelector('p').textContent = message;
+            
+            let htmlContent = message;
+            
+            // Inyectamos el bloque visual de WhatsApp si es un formulario de acceso
+            if (isAccess) {
+                htmlContent += `
+                <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left;">
+                    <i class="fa-brands fa-whatsapp fa-2x" style="color: #25D366;"></i>
+                    <span style="font-size: 0.85rem; color: #166534; line-height: 1.2;">Este QR o NIP lo puede reenviar a cualquiera de sus contactos de WhatsApp para validar el acceso en caseta.</span>
+                </div>`;
+            }
+
+            popup.querySelector('p').innerHTML = htmlContent;
             popup.style.display = 'flex';
         }
     }
