@@ -771,19 +771,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'Evento':
                     const cant = parseInt(data.Cantidad) || 1;
                     if (cant > 1) {
-                        showConfirmationPopup('Guardado', `Se enviaron los ${cant} accesos por WhatsApp.`, true);
+                        showConfirmationPopup('Guardado', `Se enviaron los ${cant} accesos por WhatsApp.`, true, 'QR');
                     } else {
-                        showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true);
+                        showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true, 'QR');
                     }
                     break;
                 case 'Personal de servicio':
-                    showConfirmationPopup('Personal Registrado', 'Se generó y envió el acceso por WhatsApp.', true);
+                    showConfirmationPopup('Personal Registrado', 'Se generó y envió el acceso por WhatsApp.', true, 'QR');
                     break;
                 case 'Proveedor':
+                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true, 'NIP');
+                    break;
                 case 'Residente':
                 case 'Visita':
+                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true, 'QR');
+                    break;
                 default:
-                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true);
+                    showConfirmationPopup('Guardado', 'Se envió el acceso por WhatsApp.', true, 'QR');
                     break;
             }
 
@@ -804,8 +808,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // MODIFICADO: Ahora acepta un parámetro 'isAccess' para mostrar el icono de WhatsApp
-    function showConfirmationPopup(title, message, isAccess = false) {
+    // MODIFICADO: Ahora recibe accessType ('QR' o 'NIP')
+    function showConfirmationPopup(title, message, isAccess = false, accessType = 'QR') {
         if (popup) {
             popup.querySelector('h3').textContent = title;
             
@@ -813,10 +817,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Inyectamos el bloque visual de WhatsApp si es un formulario de acceso
             if (isAccess) {
+                const tipoTexto = accessType === 'NIP' ? 'Este NIP' : 'Este QR';
                 htmlContent += `
                 <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left;">
                     <i class="fa-brands fa-whatsapp fa-2x" style="color: #25D366;"></i>
-                    <span style="font-size: 0.85rem; color: #166534; line-height: 1.2;">Este QR o NIP lo puede reenviar a cualquiera de sus contactos de WhatsApp para validar el acceso en caseta.</span>
+                    <span style="font-size: 0.85rem; color: #166534; line-height: 1.2;">${tipoTexto} lo puede reenviar a cualquiera de sus contactos de WhatsApp para validar el acceso en caseta.</span>
                 </div>`;
             }
 
