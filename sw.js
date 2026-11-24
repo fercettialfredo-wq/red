@@ -1,4 +1,4 @@
-// Aumentamos la versión para forzar la actualización en los dispositivos
+
 const CACHE_NAME = 'ravens-access-v25';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
   './icons/incidencias.svg'
 ];
 
-// Escucha el mensaje desde app.js para forzar el reemplazo del Service Worker
+
 self.addEventListener('message', (event) => {
   if (event.data && event.data.action === 'skipWaiting') {
     self.skipWaiting();
@@ -24,7 +24,7 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('install', event => {
-  // Obliga al SW nuevo a activarse inmediatamente
+  
   self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -33,7 +33,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  // Borrar cachés viejos para que no se mezclen estilos
+ 
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -49,8 +49,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Estrategia "Network First" (Internet primero, caché después)
-  // Esto asegura que siempre veas los cambios recientes.
+ 
   event.respondWith(
     fetch(event.request)
       .then(response => {
