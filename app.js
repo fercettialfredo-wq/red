@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- LÓGICA DE ACTUALIZACIÓN FORZADA DEL SERVICE WORKER ---
+
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').then(registration => {
             registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Nueva versión detectada, forzar la actualización
+                      
                         newWorker.postMessage({ action: 'skipWaiting' });
                     }
                 });
@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const CONFIG = {
-        // Asegúrese de que esta URL sea la de su PROXY
         API_PROXY_URL: 'https://proxy-g8a7cyeeeecsg5hc.mexicocentral-01.azurewebsites.net/api/ravens-proxy'
     };
 
@@ -31,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = {};
     let readyToSendPhoto = null; 
 
-    // DOM Elements
+
     const screens = document.querySelectorAll('.screen');
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('username');
@@ -45,14 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const okBtn = document.getElementById('popup-ok-btn');
     const logoutButton = document.getElementById('logout-button');
 
-    // PWA Elements
+
     const installPopup = document.getElementById('install-popup');
     const btnInstall = document.getElementById('btn-install');
     const btnCloseInstall = document.getElementById('btn-close-install');
     const installText = document.getElementById('install-text');
     let deferredPrompt;
 
-    // --- MAPA DE NOMBRES VISUALES (Evita cambiar el HTML) ---
+
     const displayTitles = {
         'Residente': 'QR Permanente',
         'Visita': 'QR de un solo uso',
@@ -61,10 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const normalizeId = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-');
 
-    // --- PARCHE DE FECHAS PARA CELULARES (IOS/ANDROID) ---
+
     const parseDateSafe = (dateStr) => {
         if (!dateStr) return new Date();
-        // Reemplaza guiones por diagonales, que es el único formato que Safari móvil nunca falla en leer
+   
         return new Date(dateStr.replace(/-/g, '/'));
     };
 
@@ -73,10 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
             if (activeScreen.classList.contains('form-page')) {
-                // Obtenemos el ID del formulario actual (HTML Intacto)
+              
                 const formId = activeScreen.dataset.formId;
 
-                // --- DETECTAR EL MÓDULO DE ELIMINAR/ACCESOS ---
+           
                 if (formId === 'Eliminar QR' || formId === 'Accesos Activos') {
                     renderAccesosActivos(activeScreen, formId);
                 } else {
@@ -89,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- CHECK SESSION ---
+
     const checkSession = () => {
         const savedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
         if (savedUser) {
@@ -114,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     checkSession();
 
-    // --- LOGIN ---
+   
     if (loginForm && togglePassword) {
         togglePassword.addEventListener('click', function () {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -132,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginButton.textContent = 'Verificando...';
 
             try {
-                // SE AGREGA CACHE: NO-STORE PARA EVITAR EL ERROR 404 DEL SERVICE WORKER EN CELULAR
+              
                 const response = await fetch(CONFIG.API_PROXY_URL, {
                     method: 'POST',
                     cache: 'no-store',
@@ -162,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showScreen(SCREENS.MENU);
 
             } catch (error) {
-                // Solo muestra "Error", no expone detalles técnicos
+               
                 loginError.textContent = "Error"; 
                 loginError.classList.remove('hidden');
             } finally {
@@ -176,10 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutButton.addEventListener('click', doLogout);
     }
 
-    // --- ACTUALIZAR NOMBRES DEL MENÚ DINÁMICAMENTE (Evita cambiar el HTML) ---
+   
     if (menuItems.length > 0) {
         menuItems.forEach(item => {
-            // Cambiamos el texto respetando los iconos (font-awesome, imgs, etc)
+           
             const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT, null, false);
             let node;
             while (node = walker.nextNode()) {
@@ -198,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- PWA LOGIC ---
+   
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
 
@@ -236,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- FORMS CONFIG ---
+
     const formDefinitions = {
         'Residente': [ 
             { label: 'Nombre', type: 'text', placeholder: 'Ej. Juan Pérez' }, 
@@ -274,11 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     };
 
-    // --- NUEVA LÓGICA: ACCESOS ACTIVOS (LIBRETA) ---
+
     async function renderAccesosActivos(container, formId) {
         const visualTitle = displayTitles[formId] || 'Accesos Activos';
 
-        // Estructura Base de la Pantalla
+   
         container.innerHTML = `
             <header class="header-app">
                 <div class="header-logo">
@@ -300,11 +299,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
 
-        // Eventos de navegación
+       
         container.querySelector('.home-icon').addEventListener('click', () => showScreen(SCREENS.MENU));
         container.querySelector('#btn-refresh-access').addEventListener('click', () => loadAccessList());
 
-        // Carga inicial de datos
+     
         await loadAccessList();
     }
 
@@ -315,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         listContainer.innerHTML = '<div class="loader"></div>';
 
         try {
-            // SE AGREGA CACHE: NO-STORE PARA EVITAR EL ERROR 404
+           
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 cache: 'no-store',
@@ -329,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
 
-            // Si falla o no hay data
+          
             if (!result.success || !result.data || result.data.length === 0) {
                 listContainer.innerHTML = `
                     <div class="empty-state">
@@ -339,28 +338,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. ORDENAR: Del más nuevo al más viejo (USANDO LA FUNCIÓN SEGURA PARA MOVILES)
+         
             result.data.sort((a, b) => {
                 const dateA = parseDateSafe(a.Created || a.Fecha);
                 const dateB = parseDateSafe(b.Created || b.Fecha);
                 return dateB - dateA;
             });
 
-            // Renderizar Tarjetas
+         
             let html = '';
             result.data.forEach(item => {
                 const nombre = item.Nombre || item.Visitante || "Sin nombre";
                 const tipo = item.Tipo || "Acceso";
                 const fecha = item.Fecha || item.Created || "";
                 
-                // Formateo seguro de fecha
+              
                 const dateObj = parseDateSafe(fecha);
                 const dateStr = isNaN(dateObj.getTime()) ? "" : dateObj.toLocaleDateString();
 
-                // Ajuste de visualización del Tipo sin cambiar el código de la BD
+         
                 let visualTipo = displayTitles[tipo] || tipo;
 
-                // 2. DETALLES EXTRA SEGÚN TIPO
+           
                 let detalleExtra = "";
                 if ((tipo === 'Visita') && item.Motivo) {
                     detalleExtra = `<p style="font-size:0.85rem; color:#6b7280; margin-top:2px;">Motivo: ${item.Motivo}</p>`;
@@ -406,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deleteAccess(id, tipo) {
         try {
-            // SE AGREGA CACHE: NO-STORE
+       
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 cache: 'no-store',
@@ -433,9 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==========================================
-    // CORRECCIÓN VISUAL DE FORMULARIOS ("ENCUADRE")
-    // ==========================================
+   
     function generateFormContent(formPage) {
         formPage.innerHTML = '';  
         const formId = formPage.dataset.formId;
@@ -472,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const conditionalClass = field.isConditional ? 'conditional-field' : '';
-            // Indicador visual de opcional
+           
             const opcionalText = field.required === false ? ' <span class="text-xs text-gray-400 font-normal">(Opcional)</span>' : '';
 
             fieldsHtml += `<div class="${conditionalClass}"><label for="${fieldId}" class="block font-bold text-gray-700">${field.label}${opcionalText}</label>${inputHtml}</div>`;
@@ -507,19 +504,19 @@ document.addEventListener('DOMContentLoaded', () => {
         setupConditionalFields(formPage);
         setupFileInputListeners(formPage);
 
-        // --- LÓGICA ESPECIAL PARA EVENTO (CAMPOS DINÁMICOS) ---
+       
         if (formId === 'Evento') {
             const qtySelect = formPage.querySelector('#evento-qty-select');
             const dynamicContainer = formPage.querySelector('#dynamic-fields-container');
             const exampleNames = ["Luis Ramírez", "María García", "Carlos López", "Ana Martínez", "Jorge Sánchez", "Laura Pérez", "Pedro Gómez", "Sofía Díaz", "Miguel Torres", "Elena Flores"];
 
             if (qtySelect && dynamicContainer) {
-                // Función para pintar los inputs
+              
                 const renderGuestInputs = () => {
                     const cantidad = parseInt(qtySelect.value) || 1;
-                    dynamicContainer.innerHTML = ''; // Limpiar anteriores
+                    dynamicContainer.innerHTML = ''; 
 
-                    // Aviso de advertencia
+                 
                     const warning = document.createElement('div');
                     warning.className = "p-3 mb-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 text-sm";
                     warning.innerHTML = `<p class="font-bold">⚠️ Importante:</p><p>Se generarán ${cantidad} pases QR. Asegúrese de que es correcto.</p>`;
@@ -537,10 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 };
 
-                // Escuchar cambios
+              
                 qtySelect.addEventListener('change', renderGuestInputs);
 
-                // Ejecutar una vez al inicio
+               
                 renderGuestInputs();
             }
         }
@@ -594,18 +591,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- COMPRESIÓN DE IMAGEN MEJORADA PARA CELULARES ---
+    
     function compressImage(file) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            // Compatibilidad de lectura de archivos pesados
+           
             const objectUrl = URL.createObjectURL(file);
             img.src = objectUrl;
             
             img.onload = () => {
                 URL.revokeObjectURL(objectUrl);
                 const canvas = document.createElement('canvas');
-                // Reducimos un poco el max-width para asegurar que no colapse la RAM de celulares viejos
+               
                 const MAX_WIDTH = 500; 
                 const scaleSize = MAX_WIDTH / img.width;
                 if (scaleSize >= 1) { 
@@ -636,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorP = form.querySelector('.form-error');
         errorP.classList.add('hidden');
 
-        // CALCULAR CANTIDAD DE ACCESOS PARA LÍMITE DIARIO
+     
         let isAccessForm = formId !== 'Incidencias';
         let cantAccesos = 1;
         if (formId === 'Evento') {
@@ -644,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (qtySelect) cantAccesos = parseInt(qtySelect.value) || 1;
         }
 
-        // VALIDACIÓN LÍMITE DIARIO DE 100 USOS
+       
         if (isAccessForm) {
             const today = new Date().toLocaleDateString('es-MX');
             const limitKey = `ravens_limit_${currentUser.username}_${today}`;
@@ -653,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentCount + cantAccesos > 100) {
                 errorP.innerHTML = `⚠️ <b>Límite diario excedido.</b><br>Ha generado ${currentCount} de 100 accesos máximos permitidos hoy.`;
                 errorP.classList.remove('hidden');
-                return; // Bloquea el envío si se supera el límite
+                return; 
             }
         }
 
@@ -674,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let allFieldsValid = true;
 
-            // Recolección campos estándar
+           
             for (const fieldDefinition of formDefinitions[formId]) {
                 const dataField = fieldDefinition.field || fieldDefinition.label;
                 const fieldId = fieldDefinition.id || `${normalizeId(formId)}-${normalizeId(fieldDefinition.label)}`;
@@ -686,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (container && !container.classList.contains('visible')) isVisible = false;
                 if (!isVisible) continue;
 
-                // Verificamos si el campo es explícitamente requerido: false
+            
                 const isRequired = fieldDefinition.required !== false;
 
                 if (fieldDefinition.type === 'checkbox-group') {
@@ -713,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // --- LÓGICA ESPECIAL DE RECOLECCIÓN PARA EVENTO ---
+           
             if (formId === 'Evento') {
                 const guestInputs = formPage.querySelectorAll('.guest-name-input');
                 const names = [];
@@ -732,16 +729,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error("Validation"); 
                 }
 
-                // Enviamos los nombres como una cadena separada por comas
+               
                 data['Nombres_Invitados'] = names.join(', ');
 
                 if (names.length === 0) allFieldsValid = false;
             }
-            // --------------------------------------------------
+         
 
             if (!allFieldsValid) throw new Error("Validation");
 
-            // SE AGREGA CACHE: NO-STORE PARA EVITAR EL ERROR 404
+           
             const response = await fetch(CONFIG.API_PROXY_URL, {
                 method: 'POST',
                 cache: 'no-store',
@@ -753,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error("Server_Error"); 
             }
 
-            // SI LA PETICIÓN FUE EXITOSA, SUMAR AL CONTADOR DIARIO
+           
             if (isAccessForm) {
                 const today = new Date().toLocaleDateString('es-MX');
                 const limitKey = `ravens_limit_${currentUser.username}_${today}`;
@@ -763,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             readyToSendPhoto = null;
 
-            // --- MENSAJES DE ÉXITO COHERENTES ---
+          
             switch (formId) {
                 case 'Incidencias':
                     showConfirmationPopup('Reporte Enviado', 'Se envió el reporte con éxito.', false);
@@ -792,11 +789,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) {
-            // Manejo de error limpio sin exponer ligas
+          
             if (error.message === "Validation") {
                 errorP.textContent = "Error: Faltan datos obligatorios.";
             } else {
-                errorP.textContent = "Error"; // Estricto como lo solicitaste
+                errorP.textContent = "Error"; 
             }
             errorP.classList.remove('hidden');
             errorP.scrollIntoView({ behavior: 'smooth' });
@@ -808,14 +805,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // MODIFICADO: Ahora recibe accessType ('QR' o 'NIP')
+    
     function showConfirmationPopup(title, message, isAccess = false, accessType = 'QR') {
         if (popup) {
             popup.querySelector('h3').textContent = title;
             
             let htmlContent = message;
             
-            // Inyectamos el bloque visual de WhatsApp si es un formulario de acceso
+           
             if (isAccess) {
                 const tipoTexto = accessType === 'NIP' ? 'Este NIP' : 'Este QR';
                 htmlContent += `
@@ -842,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const trigger = activeForm.querySelector('#tipo-personal');
                 if (trigger) trigger.dispatchEvent(new Event('change'));
 
-                // Resetear evento también
+              
                 const eventTrigger = activeForm.querySelector('#evento-qty-select');
                 if (eventTrigger) eventTrigger.dispatchEvent(new Event('change'));
 
