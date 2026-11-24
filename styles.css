@@ -203,7 +203,7 @@ input[type="password"]::-webkit-password-reveal-button {
     display: block;
 }
 
-/* --- ESTILOS DE ACCESOS ACTIVOS (NUEVO) --- */
+
 .access-card {
     background: #fff;
     border: 1px solid #e2e8f0;
